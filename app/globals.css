@@ -1,0 +1,316 @@
+@import "tailwindcss";
+
+:root {
+  /* Atlas Drive Master UI Redesign Tokens */
+  --background: #080d14;
+  --foreground: #f4f5f7;
+  --accent: #e5b94f;
+  --accent-foreground: #0a0a0a;
+  --gold: #e5b94f;
+  --gold-light: #f6d57a;
+  --gold-dark: #ad8431;
+  --gold-soft: rgba(229, 185, 79, 0.13);
+  --ivory: #f4f5f7;
+  --surface: #0d141e;
+  --line: #202c3a;
+  --border: #202c3a;
+  --border-strong: #35404d;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-gold: var(--gold);
+  --color-gold-light: var(--gold-light);
+  --color-gold-dark: var(--gold-dark);
+  --color-gold-soft: var(--gold-soft);
+  --color-ivory: var(--ivory);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-border: var(--border);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Admin panel design system — Atlas Drive Dark Gold */
+  --color-admin-navy: #080d14;
+  --color-admin-navy-2: #030609;
+  --color-admin-navy-3: #0d141e;
+  --color-admin-bg: #080d14;
+  --color-admin-surface: #0d141e;
+  --color-admin-surface-elevated: #111b27;
+  --color-admin-surface-hover: #172331;
+  --color-admin-ink: #f4f5f7;
+  --color-admin-muted: #b5c0cd;
+  --color-admin-muted-2: #8190a1;
+  --color-admin-line: #202c3a;
+  --color-admin-border-strong: #35404d;
+  --color-admin-red: #fa655e;
+  --color-admin-gold: #e5b94f;
+  --color-admin-gold-light: #f6d57a;
+  --color-admin-gold-dark: #ad8431;
+  --color-admin-gold-soft: rgba(229, 185, 79, 0.13);
+  --color-admin-success: #27d99a;
+  --color-admin-warning: #f4c34f;
+  --color-admin-danger: #fa655e;
+  --color-admin-neutral: #a9b2bf;
+}
+
+/* Inter for the admin workspace (public site keeps Geist). */
+.font-inter {
+  font-family: var(--font-inter), var(--font-noto-arabic), system-ui, -apple-system,
+    BlinkMacSystemFont, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 6rem;
+}
+
+body {
+  background: #050505;
+  color: var(--foreground);
+  /* --font-noto-arabic supplies Arabic glyphs (Geist has no arabic subset). */
+  font-family: var(--font-geist-sans), var(--font-noto-arabic), system-ui,
+    -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--gold);
+  color: #0a0a0a;
+}
+
+/* Visible, elegant keyboard focus everywhere. */
+*:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+@layer components {
+  .container-luxe {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding-inline: 1.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .container-luxe {
+      padding-inline: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container-luxe {
+      padding-inline: 2rem;
+    }
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+
+  .eyebrow::before {
+    content: "";
+    width: 2rem;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.8;
+  }
+
+  .eyebrow-center::before {
+    display: none;
+  }
+
+  .btn-gold,
+  .btn-ghost,
+  .btn-light {
+    display: inline-flex;
+    min-height: 3rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    border-radius: 9999px;
+    padding: 0.8125rem 1.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    line-height: 1.2;
+    text-align: center;
+    transition:
+      background-color 200ms ease,
+      border-color 200ms ease,
+      color 200ms ease,
+      transform 200ms ease,
+      box-shadow 200ms ease;
+  }
+
+  .btn-gold {
+    background: var(--gold);
+    border: 1px solid var(--gold);
+    color: #0a0a0a;
+    box-shadow: 0 14px 40px -20px rgba(201, 169, 97, 0.9);
+  }
+
+  .btn-gold:hover {
+    background: var(--gold-soft);
+    border-color: var(--gold-soft);
+    transform: translateY(-1px);
+    box-shadow: 0 20px 50px -24px rgba(201, 169, 97, 1);
+  }
+
+  .btn-ghost {
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    color: var(--ivory);
+    background: transparent;
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--gold);
+    color: var(--gold-soft);
+    background: rgba(201, 169, 97, 0.08);
+  }
+
+  .btn-light {
+    border: 1px solid var(--ivory);
+    background: var(--ivory);
+    color: #0a0a0a;
+  }
+
+  .btn-light:hover {
+    background: #ffffff;
+    border-color: #ffffff;
+  }
+
+  .card-luxe {
+    border: 1px solid var(--line);
+    border-radius: 1.25rem;
+    background:
+      linear-gradient(160deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 45%),
+      var(--surface);
+    box-shadow: 0 30px 70px -50px rgba(0, 0, 0, 0.9);
+  }
+
+  .input-luxe {
+    display: block;
+    width: 100%;
+    min-height: 3rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--ivory);
+    transition:
+      border-color 180ms ease,
+      background-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .input-luxe::placeholder {
+    color: rgba(255, 255, 255, 0.38);
+  }
+
+  .input-luxe:hover {
+    border-color: rgba(255, 255, 255, 0.28);
+  }
+
+  .input-luxe:focus {
+    outline: none;
+    border-color: var(--gold);
+    background: rgba(201, 169, 97, 0.06);
+    box-shadow: 0 0 0 3px rgba(201, 169, 97, 0.18);
+  }
+
+  .input-luxe option {
+    background: #111111;
+    color: #f5f2ea;
+  }
+
+  .gold-rule {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      rgba(201, 169, 97, 0.85),
+      rgba(201, 169, 97, 0.15) 60%,
+      transparent
+    );
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .hero-grid {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size: 72px 72px;
+    mask-image: linear-gradient(to bottom, black, transparent 78%);
+  }
+}
+
+/* Arabic reads better without the Latin display tracking. */
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] h3,
+[dir="rtl"] .eyebrow,
+[dir="rtl"] .btn-gold,
+[dir="rtl"] .btn-ghost,
+[dir="rtl"] .btn-light,
+[dir="rtl"] nav a {
+  letter-spacing: 0;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,399 @@
+// ATLAS DRIVE - Prisma schema (v2: admin panel)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ---------------------------------------------------------------------------
+// Auth & staff
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  SUPER_ADMIN
+  MANAGER
+  AGENT
+  FINANCE
+  FLEET_MANAGER
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         UserRole  @default(AGENT)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions     Session[]
+  bookings     Booking[]      @relation("BookingConfirmedBy")
+  activities   ActivityLog[]
+  payments     Payment[]
+  expenses     Expense[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  lastUsedAt DateTime?
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// Catalog & fleet
+// ---------------------------------------------------------------------------
+
+enum CarStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Car {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  brand       String
+  model       String
+  name        String
+  year        Int?
+  category    String
+  transmission String
+  fuelType    String
+  seats       Int
+  doors       Int
+  dailyPrice  Decimal
+  weeklyPrice Decimal?
+  monthlyPrice Decimal?
+  deposit     Decimal   @default(0)
+  description String?
+  // Extended specifications
+  plateNumber String?   @unique
+  vin         String?
+  internalCode String?  @unique // Internal fleet reference
+  internalNotes String?
+  airConditioning Boolean @default(false)
+  mileage     Int?
+  features    String?   // JSON array of feature labels
+  locationId  String?
+  location    Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  status      CarStatus @default(DRAFT)
+  operationalStatus String @default("AVAILABLE") // AVAILABLE | RENTED | MAINTENANCE | UNAVAILABLE
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  images      CarImage[]
+  bookings    Booking[]
+  maintenances Maintenance[]
+  expenses    Expense[]
+
+  @@index([status])
+  @@index([category])
+  @@index([operationalStatus])
+}
+
+model CarImage {
+  id        String  @id @default(cuid())
+  carId     String
+  car       Car     @relation(fields: [carId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String?
+  sortOrder Int     @default(0)
+  isPrimary Boolean @default(false)
+
+  @@index([carId])
+}
+
+model Maintenance {
+  id            String   @id @default(cuid())
+  carId         String
+  car           Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+  type          String   @default("OTHER") // OIL | TIRE | INSPECTION | REPAIR | INSURANCE | REGISTRATION | OTHER
+  startAt       DateTime
+  endAt         DateTime
+  nextServiceAt DateTime?
+  mileage       Int?
+  cost          Decimal  @default(0)
+  provider      String?
+  description   String?
+  notes         String?
+  status        String   @default("SCHEDULED") // SCHEDULED | IN_PROGRESS | COMPLETED | CANCELLED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([carId, startAt, endAt])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Locations
+// ---------------------------------------------------------------------------
+
+model Location {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  city      String?
+  phone     String?
+  email     String?
+  hours     String?  // JSON {day: "09:00-19:00"}
+  isActive  Boolean  @default(true)
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cars Car[]
+}
+
+// ---------------------------------------------------------------------------
+// Customers & bookings
+// ---------------------------------------------------------------------------
+
+model Customer {
+  id          String    @id @default(cuid())
+  name        String
+  email       String?
+  phone       String
+  licenseNumber String?
+  notes       String?
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  bookings Booking[]
+
+  @@index([phone])
+  @@index([name])
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  READY_FOR_PICKUP
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  REJECTED
+}
+
+enum BookingSource {
+  WEB
+  ADMIN
+  PHONE
+  WALK_IN
+}
+
+model Booking {
+  id                String        @id @default(cuid())
+  publicRef         String        @unique
+  customerId        String?
+  customer          Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerName      String
+  customerPhone     String
+  customerEmail     String?
+  carId             String
+  car               Car           @relation(fields: [carId], references: [id], onDelete: Restrict)
+  pickupAt          DateTime
+  returnAt          DateTime
+  pickedUpAt        DateTime?
+  returnedAt        DateTime?
+  pickupLocation    String
+  returnLocation    String
+  dailyPriceSnapshot Decimal
+  extrasTotal       Decimal       @default(0)
+  discount          Decimal       @default(0)
+  deposit           Decimal       @default(0)
+  totalPrice        Decimal
+  status            BookingStatus @default(PENDING)
+  source            BookingSource @default(WEB)
+  cancellationReason String?
+  internalNotes     String?
+  customerNotes     String?
+  cancelledAt       DateTime?
+  confirmedById     String?
+  confirmedBy       User?         @relation("BookingConfirmedBy", fields: [confirmedById], references: [id], onDelete: SetNull)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  payments Payment[]
+  invoice  Invoice?
+  review   Review?
+
+  @@index([carId, pickupAt, returnAt])
+  @@index([status])
+  @@index([customerId])
+  @@index([pickupAt])
+}
+
+// ---------------------------------------------------------------------------
+// Payments, invoices, expenses
+// ---------------------------------------------------------------------------
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  PARTIAL
+  FAILED
+  REFUNDED
+  PARTIAL_REFUND
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  bookingId String
+  booking   Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  amount    Decimal
+  method    String        @default("CASH") // CASH | BANK_TRANSFER | CARD | CHECK | OTHER
+  status    PaymentStatus @default(PAID)
+  reference String?
+  paidAt    DateTime
+  notes     String?
+  createdById String?
+  createdBy User?         @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt DateTime      @default(now())
+
+  @@index([bookingId])
+  @@index([paidAt])
+  @@index([status])
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  VOID
+}
+
+model Invoice {
+  id        String        @id @default(cuid())
+  number    String        @unique
+  bookingId String        @unique
+  booking   Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  status    InvoiceStatus @default(ISSUED)
+  subtotal  Decimal
+  discount  Decimal       @default(0)
+  taxRate   Decimal       @default(0) // percentage, from settings - never assumed
+  taxAmount Decimal       @default(0)
+  total     Decimal
+  items     String?       // JSON line items
+  issuedAt  DateTime      @default(now())
+  dueAt     DateTime?
+  paidAt    DateTime?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([bookingId])
+  @@index([status])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  category    String // SERVICE | FUEL | INSURANCE | TAXES | PARKING | CLEANING | TOWING | OTHER
+  description String
+  amount      Decimal
+  date        DateTime
+  carId       String?
+  car         Car?     @relation(fields: [carId], references: [id], onDelete: SetNull)
+  supplier    String?
+  paymentMethod String @default("CASH") // CASH | BANK_TRANSFER | CARD | CHECK | OTHER
+  receiptUrl  String?
+  notes       String?
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@index([date])
+  @@index([category])
+  @@index([carId])
+}
+
+// ---------------------------------------------------------------------------
+// Promotions & reviews
+// ---------------------------------------------------------------------------
+
+model Promotion {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  type      String   @default("PERCENT") // PERCENT | FIXED
+  value     Decimal
+  startsAt  DateTime
+  endsAt    DateTime?
+  usageLimit Int?
+  usedCount Int      @default(0)
+  minDays   Int?
+  categories String?  // JSON array of eligible categories, null = all
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  bookingId String?  @unique
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  author    String
+  rating    Int
+  content   String
+  published Boolean  @default(false)
+  reply     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published])
+  @@index([rating])
+}
+
+// ---------------------------------------------------------------------------
+// Platform: notifications, activity logs, settings
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        String    @id @default(cuid())
+  type      String // booking.created | booking.confirmed | booking.pickup_today | ...
+  params    String?   // JSON payload used to render the translated title
+  link      String?
+  dedupeKey String?   @unique
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([readAt])
+  @@index([createdAt])
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userLabel  String   @default("system") // "name <email>" snapshot
+  action     String // booking.confirmed, car.updated, payment.created, ...
+  entityType String
+  entityId   String?
+  summary    String?
+  before     String?  // JSON snapshot
+  after      String?  // JSON snapshot
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+}
+
+model SiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}

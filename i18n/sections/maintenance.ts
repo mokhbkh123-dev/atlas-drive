@@ -1,0 +1,133 @@
+import type { Locale } from "../config";
+
+const fr = {
+  title: "Entretien",
+  subtitle: "Gérer les maintenances et rappels par véhicule",
+  new: "Ajouter un entretien",
+  newTitle: "Nouvel entretien",
+  newSubtitle: "Enregistrer un entretien pour un véhicule spécifique",
+  empty: "Aucun entretien enregistré",
+  viewVehicle: "Voir le véhicule",
+  columns: {
+    vehicle: "Véhicule",
+    type: "Type",
+    status: "Statut",
+    period: "Période",
+    nextService: "Prochain entretien",
+    mileage: "Kilométrage",
+    cost: "Coût",
+    provider: "Prestataire",
+  },
+  form: {
+    title: "Détails de l'entretien",
+  },
+  fields: {
+    vehicle: "Véhicule",
+    type: "Type d'entretien",
+    status: "Statut",
+    startAt: "Date de début",
+    endAt: "Date de fin",
+    nextServiceAt: "Prochaine date d'entretien",
+    mileage: "Kilométrage au moment de l'entretien",
+    cost: "Coût (MAD)",
+    provider: "Prestataire / Garage",
+    description: "Problème / Service effectué",
+    notes: "Notes internes",
+  },
+  save: "Enregistrer",
+  cancel: "Annuler",
+  toast: {
+    created: "Entretien enregistré avec succès",
+    error: "Erreur lors de l'enregistrement",
+  },
+};
+
+/**
+ * Maintenance planning and history.
+ * Keys must stay in sync with the `fr` base dictionary.
+ */
+export const maintenance: Record<Locale, typeof fr> = {
+  fr,
+  en: {
+    title: "Maintenance",
+    subtitle: "Manage maintenance and service reminders per vehicle",
+    new: "Add maintenance",
+    newTitle: "New maintenance",
+    newSubtitle: "Record maintenance for a specific vehicle",
+    empty: "No maintenance records",
+    viewVehicle: "View vehicle",
+    columns: {
+      vehicle: "Vehicle",
+      type: "Type",
+      status: "Status",
+      period: "Period",
+      nextService: "Next service",
+      mileage: "Mileage",
+      cost: "Cost",
+      provider: "Provider",
+    },
+    form: {
+      title: "Maintenance details",
+    },
+    fields: {
+      vehicle: "Vehicle",
+      type: "Maintenance type",
+      status: "Status",
+      startAt: "Start date",
+      endAt: "End date",
+      nextServiceAt: "Next service date",
+      mileage: "Mileage at service",
+      cost: "Cost (MAD)",
+      provider: "Provider / Garage",
+      description: "Issue / Work performed",
+      notes: "Internal notes",
+    },
+    save: "Save",
+    cancel: "Cancel",
+    toast: {
+      created: "Maintenance recorded successfully",
+      error: "Error saving maintenance",
+    },
+  },
+  ar: {
+    title: "الصيانة",
+    subtitle: "إدارة الصيانة وتذكيرات الخدمة حسب المركبة",
+    new: "إضافة صيانة",
+    newTitle: "صيانة جديدة",
+    newSubtitle: "تسجيل صيانة لمركبة محددة",
+    empty: "لا توجد سجلات صيانة",
+    viewVehicle: "عرض المركبة",
+    columns: {
+      vehicle: "المركبة",
+      type: "النوع",
+      status: "الحالة",
+      period: "الفترة",
+      nextService: "الصيانة القادمة",
+      mileage: "عدد الكيلومترات",
+      cost: "التكلفة",
+      provider: "المزود",
+    },
+    form: {
+      title: "تفاصيل الصيانة",
+    },
+    fields: {
+      vehicle: "المركبة",
+      type: "نوع الصيانة",
+      status: "الحالة",
+      startAt: "تاريخ البداية",
+      endAt: "تاريخ النهاية",
+      nextServiceAt: "تاريخ الصيانة القادمة",
+      mileage: "الكيلومترات عند الصيانة",
+      cost: "التكلفة (درهم)",
+      provider: "الورشة / المزود",
+      description: "المشكلة / العمل المنجز",
+      notes: "ملاحظات داخلية",
+    },
+    save: "حفظ",
+    cancel: "إلغاء",
+    toast: {
+      created: "تم تسجيل الصيانة بنجاح",
+      error: "خطأ في حفظ الصيانة",
+    },
+  },
+};
