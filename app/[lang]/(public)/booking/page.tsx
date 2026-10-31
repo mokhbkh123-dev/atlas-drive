@@ -40,13 +40,13 @@ export default async function BookingPage({
     orderBy: { name: "asc" },
   });
 
+  // Catalogue prices stay on the server: the request form shows duration only.
   const serializedCars = cars.map(c => ({
     id: c.id,
     slug: c.slug,
     brand: c.brand,
     model: c.model,
     name: c.name,
-    dailyPrice: c.dailyPrice.toString(),
     images: c.images?.map(img => ({
       url: img.url,
       isPrimary: img.isPrimary,

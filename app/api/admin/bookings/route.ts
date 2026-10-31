@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { apiAuth } from "@/lib/rbac";
 import { generateRef } from "@/lib/utils";
-import { calculateRental, MIN_RENTAL_DAYS } from "@/lib/booking-pricing";
+import { calculateRentalDuration, MIN_RENTAL_DAYS } from "@/lib/booking-pricing";
 import type { BookingSource, BookingStatus } from "@prisma/client";
 
 const BLOCKING_STATUSES = ["PENDING", "CONFIRMED", "READY_FOR_PICKUP", "IN_PROGRESS"];
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const rental = calculateRental(pickupAt, returnAt);
+    const rental = calculateRentalDuration(pickupAt, returnAt);
     if (!rental.meetsMinimum) {
       return NextResponse.json(
         { code: "MIN_RENTAL_DAYS", error: `La durée minimale de location est de ${MIN_RENTAL_DAYS} jours`, minDays: MIN_RENTAL_DAYS, days: rental.days },

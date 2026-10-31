@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateRef } from "@/lib/utils";
-import { calculateRental, MIN_RENTAL_DAYS } from "@/lib/booking-pricing";
+import { quoteRental, MIN_RENTAL_DAYS } from "@/lib/booking-pricing";
 
 export async function POST(req: NextRequest) {
   try {
@@ -41,9 +41,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Centralised pricing/duration rules (shared with the booking form).
-    // The client can never bypass these checks by sending its own total.
-    const rental = calculateRental(pickupAt, returnAt);
+    // The vehicle must be resolved before pricing: the agreed rate comes from
+    // its own catalogue, never from anything the browser sends.
+    const car = await prisma.car.findUnique({ where: { id: carId } });
+    if (!car || car.status !== "PUBLISHED") {
+      return NextResponse.json(
+        { code: "CAR_UNAVAILABLE", error: "Véhicule non disponible" },
+        { status: 400 }
+      );
+    }
+
+    // Centralised duration rules (shared with the booking form).
+    const rental = quoteRental(car, pickupAt, returnAt);
     if (!rental.meetsMinimum) {
       return NextResponse.json(
         {
@@ -52,14 +61,6 @@ export async function POST(req: NextRequest) {
           minDays: MIN_RENTAL_DAYS,
           days: rental.days,
         },
-        { status: 400 }
-      );
-    }
-
-    const car = await prisma.car.findUnique({ where: { id: carId } });
-    if (!car || car.status !== "PUBLISHED") {
-      return NextResponse.json(
-        { code: "CAR_UNAVAILABLE", error: "Véhicule non disponible" },
         { status: 400 }
       );
     }
@@ -88,10 +89,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Calculate price from the shared business rules:
-    // calendar-day duration × requested daily price (250 MAD).
-    const { dailyPrice, total } = rental;
-
     const booking = await prisma.booking.create({
       data: {
         publicRef: generateRef("AD"),
@@ -103,9 +100,10 @@ export async function POST(req: NextRequest) {
         returnAt: ret,
         pickupLocation,
         returnLocation,
-        dailyPriceSnapshot: dailyPrice,
+        dailyPriceSnapshot: rental.dailyPrice,
         extrasTotal: 0,
-        totalPrice: total,
+        deposit: rental.deposit,
+        totalPrice: rental.total,
         status: "PENDING",
         customerNotes: customerNotes || null,
       },

@@ -3,16 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, MessageCircle, ShieldCheck } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
 import { getDict, type Locale } from "@/i18n";
-import { calculateRental, REQUESTED_DAILY_PRICE } from "@/lib/booking-pricing";
+import { calculateRentalDuration } from "@/lib/booking-pricing";
 
 type Car = {
   id: string;
   name: string | null;
   brand: string;
   model: string;
-  dailyPrice: string | number;
   images?: { url: string; isPrimary: boolean }[];
 };
 
@@ -43,11 +41,10 @@ export default function BookingForm({
   const [error, setError] = useState("");
 
   const selectedCar = cars.find((c) => c.id === formData.carId);
-  const dailyPrice = REQUESTED_DAILY_PRICE;
 
-  const rental = calculateRental(formData.pickupAt, formData.returnAt);
+  // Duration only: the total is priced on the server, never shown here.
+  const rental = calculateRentalDuration(formData.pickupAt, formData.returnAt);
   const days = rental.days;
-  const total = rental.total;
 
   const handleWhatsAppBooking = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,11 +142,11 @@ export default function BookingForm({
 
     let message = "";
     if (lang === "ar") {
-      message = `طلب حجز جديد – ATLAS DRIVE\n\nمعلومات العميل:\n- الاسم الأول: ${formData.firstName.trim()}\n- اسم العائلة: ${formData.lastName.trim()}\n- رقم الهاتف: ${formData.customerPhone.trim()}\n\nتفاصيل السيارة:\n- السيارة: ${carName}\n- السعر اليومي: ${formatCurrency(dailyPrice, lang)}\n\nتفاصيل الحجز:\n- تاريخ الاستلام: ${formData.pickupAt}\n- تاريخ العودة: ${formData.returnAt}\n- مكان الاستلام: ${formData.pickupLocation.trim()}\n- مكان العودة: ${formData.returnLocation.trim() || formData.pickupLocation.trim()}\n- مدة الإيجار: ${days} يوم\n- المجموع التقديري: ${formatCurrency(total, lang)}\n\nملاحظات إضافية:\n${formData.customerNotes.trim() || "لا يوجد"}\n\nيرجى التواصل مع العميل لتأكيد التوفر وإنهاء الحجز.`;
+      message = `طلب حجز جديد – ATLAS DRIVE\n\nمعلومات العميل:\n- الاسم الأول: ${formData.firstName.trim()}\n- اسم العائلة: ${formData.lastName.trim()}\n- رقم الهاتف: ${formData.customerPhone.trim()}\n\nتفاصيل السيارة:\n- السيارة: ${carName}\n\nتفاصيل الحجز:\n- تاريخ الاستلام: ${formData.pickupAt}\n- تاريخ العودة: ${formData.returnAt}\n- مكان الاستلام: ${formData.pickupLocation.trim()}\n- مكان العودة: ${formData.returnLocation.trim() || formData.pickupLocation.trim()}\n- مدة الإيجار: ${days} يوم\n\nملاحظات إضافية:\n${formData.customerNotes.trim() || "لا يوجد"}\n\nيرجى التواصل مع العميل لتأكيد التوفر والسعر وإنهاء الحجز.`;
     } else if (lang === "en") {
-      message = `NEW CAR BOOKING REQUEST – ATLAS DRIVE\n\nCustomer Information:\n- First Name: ${formData.firstName.trim()}\n- Last Name: ${formData.lastName.trim()}\n- Phone Number: ${formData.customerPhone.trim()}\n\nCar Details:\n- Car: ${carName}\n- Daily Price: ${formatCurrency(dailyPrice, lang)}\n\nBooking Details:\n- Pickup Date: ${formData.pickupAt}\n- Return Date: ${formData.returnAt}\n- Pickup Location: ${formData.pickupLocation.trim()}\n- Return Location: ${formData.returnLocation.trim() || formData.pickupLocation.trim()}\n- Rental Duration: ${days} day(s)\n- Estimated Total: ${formatCurrency(total, lang)}\n\nAdditional Notes:\n${formData.customerNotes.trim() || "None"}\n\nPlease contact the customer to confirm availability and finalize the reservation.`;
+      message = `NEW CAR BOOKING REQUEST – ATLAS DRIVE\n\nCustomer Information:\n- First Name: ${formData.firstName.trim()}\n- Last Name: ${formData.lastName.trim()}\n- Phone Number: ${formData.customerPhone.trim()}\n\nCar Details:\n- Car: ${carName}\n\nBooking Details:\n- Pickup Date: ${formData.pickupAt}\n- Return Date: ${formData.returnAt}\n- Pickup Location: ${formData.pickupLocation.trim()}\n- Return Location: ${formData.returnLocation.trim() || formData.pickupLocation.trim()}\n- Rental Duration: ${days} day(s)\n\nAdditional Notes:\n${formData.customerNotes.trim() || "None"}\n\nPlease contact the customer to confirm availability and the final rate, then finalize the reservation.`;
     } else {
-      message = `NOUVELLE DEMANDE DE RÉSERVATION – ATLAS DRIVE\n\nInformations Client:\n- Prénom: ${formData.firstName.trim()}\n- Nom: ${formData.lastName.trim()}\n- Téléphone: ${formData.customerPhone.trim()}\n\nDétails du Véhicule:\n- Véhicule: ${carName}\n- Prix journalier: ${formatCurrency(dailyPrice, lang)}\n\nDétails de Réservation:\n- Date de prise en charge: ${formData.pickupAt}\n- Date de retour: ${formData.returnAt}\n- Lieu de prise en charge: ${formData.pickupLocation.trim()}\n- Lieu de retour: ${formData.returnLocation.trim() || formData.pickupLocation.trim()}\n- Durée de location: ${days} jour(s)\n- Total estimé: ${formatCurrency(total, lang)}\n\nNotes supplémentaires:\n${formData.customerNotes.trim() || "Aucune"}\n\nMerci de contacter le client pour confirmer la disponibilité et finaliser la réservation.`;
+      message = `NOUVELLE DEMANDE DE RÉSERVATION – ATLAS DRIVE\n\nInformations Client:\n- Prénom: ${formData.firstName.trim()}\n- Nom: ${formData.lastName.trim()}\n- Téléphone: ${formData.customerPhone.trim()}\n\nDétails du Véhicule:\n- Véhicule: ${carName}\n\nDétails de Réservation:\n- Date de prise en charge: ${formData.pickupAt}\n- Date de retour: ${formData.returnAt}\n- Lieu de prise en charge: ${formData.pickupLocation.trim()}\n- Lieu de retour: ${formData.returnLocation.trim() || formData.pickupLocation.trim()}\n- Durée de location: ${days} jour(s)\n\nNotes supplémentaires:\n${formData.customerNotes.trim() || "Aucune"}\n\nMerci de contacter le client pour confirmer la disponibilité et le tarif final, puis finaliser la réservation.`;
     }
 
     const encodedMessage = encodeURIComponent(message);
@@ -211,9 +208,6 @@ export default function BookingForm({
               )}
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-ivory">{carLabel}</p>
-                <p className="mt-1 text-xs text-gold">
-                  {formatCurrency(dailyPrice, lang)} {dict.booking.perDay}
-                </p>
               </div>
             </div>
           ) : (
@@ -231,8 +225,7 @@ export default function BookingForm({
                 <option value="">{dict.booking.carPlaceholder}</option>
                 {cars.map((car) => (
                   <option key={car.id} value={car.id}>
-                    {car.name || `${car.brand} ${car.model}`} — {formatCurrency(REQUESTED_DAILY_PRICE, lang)}
-                    {dict.booking.perDay}
+                    {car.name || `${car.brand} ${car.model}`}
                   </option>
                 ))}
               </select>
@@ -448,12 +441,6 @@ export default function BookingForm({
                 <p className="mt-1 truncate text-lg font-semibold text-ivory">{carLabel}</p>
               </div>
             </div>
-            <div className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-              <span className="text-white/50">{dict.booking.perDay}</span>
-              <span className="font-bold text-gold">
-                {formatCurrency(dailyPrice, lang)}
-              </span>
-            </div>
           </div>
         )}
 
@@ -467,17 +454,8 @@ export default function BookingForm({
               <p className="text-white/60">
                 {dict.booking.summary.days.replace("{days}", String(days))}
               </p>
-              <p className="text-white/60">
-                {dict.booking.summary.dailyPrice.replace(
-                  "{price}",
-                  formatCurrency(dailyPrice, lang)
-                )}
-              </p>
-              <p className="flex items-baseline justify-between gap-3 border-t border-white/10 pt-3 font-semibold text-ivory">
-                {dict.booking.summary.total.replace("{total}", "")}
-                <span className="text-xl font-bold text-gold">
-                  {formatCurrency(total, lang)}
-                </span>
+              <p className="border-t border-white/10 pt-3 text-xs leading-5 text-white/45">
+                {dict.booking.summary.priceOnRequest}
               </p>
             </div>
           ) : (

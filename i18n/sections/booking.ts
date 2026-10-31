@@ -35,8 +35,7 @@ const fr = {
   summary: {
     heading: "Récapitulatif",
     days: "Nombre de jours: {days}",
-    dailyPrice: "Prix journalier: {price}",
-    total: "Total estimé: {total}",
+    priceOnRequest: "Le tarif et le total vous sont confirmés par l'agence après réception de la demande.",
   },
   submitting: "Envoi en cours...",
   submit: "Envoyer la demande",
@@ -107,8 +106,7 @@ export const booking: Record<Locale, typeof fr> = {
     summary: {
       heading: "Summary",
       days: "Number of days: {days}",
-      dailyPrice: "Daily rate: {price}",
-      total: "Estimated total: {total}",
+      priceOnRequest: "The rate and total are confirmed by the agency once your request is received.",
     },
     submitting: "Sending...",
     submit: "Send request",
@@ -171,8 +169,7 @@ export const booking: Record<Locale, typeof fr> = {
     summary: {
       heading: "الملخص",
       days: "عدد الأيام: {days}",
-      dailyPrice: "السعر اليومي: {price}",
-      total: "المجموع التقديري: {total}",
+      priceOnRequest: "يتم تأكيد السعر والإجمالي من طرف الوكالة بعد استلام طلبك.",
     },
     submitting: "جارٍ الإرسال...",
     submit: "إرسال الطلب",
