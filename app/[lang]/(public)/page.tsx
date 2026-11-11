@@ -1,20 +1,27 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  ArrowUpRight,
-  Clock,
+  CarFront,
+  Headset,
   MapPin,
   ShieldCheck,
   Wallet,
 } from "lucide-react";
 
-import CarCard, { type CarCardData } from "@/components/CarCard";
 import CarCategories from "@/components/CarCategories";
+import DestinationCard from "@/components/DestinationCard";
+import FleetGrid from "@/components/FleetGrid";
+import HeroCarousel from "@/components/HeroCarousel";
+import SearchBar from "@/components/SearchBar";
 import { prisma } from "@/lib/prisma";
+import { cityFacets, citySelectOptions } from "@/lib/locations";
 import { getDict, resolveLocale, tEnum } from "@/i18n";
-import { formatCurrency } from "@/lib/utils";
 
-const advantageIcons = [ShieldCheck, Wallet, MapPin, Clock];
+const advantageIcons = [ShieldCheck, Wallet, MapPin, Headset];
+const trustIcons = [CarFront, Headset, ShieldCheck, MapPin];
+
+const HERO_FALLBACK =
+  "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=2070&auto=format&fit=crop";
 
 export default async function Home({
   params,
@@ -29,11 +36,10 @@ export default async function Home({
     include: {
       images: { orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }] },
     },
-    orderBy: { dailyPrice: "desc" },
-    take: 4,
+    orderBy: { createdAt: "desc" },
   });
 
-  const toCard = (car: (typeof cars)[number]): CarCardData => {
+  const cards = cars.map((car) => {
     const image = car.images.find((img) => img.isPrimary) ?? car.images[0];
     return {
       id: car.id,
@@ -49,148 +55,147 @@ export default async function Home({
       imageUrl: image?.url ?? null,
       imageAlt: image?.alt ?? null,
     };
-  };
+  });
 
-  const featured = cars[0] ? toCard(cars[0]) : null;
-  const fleet = (cars.length > 3 ? cars.slice(1, 4) : cars.slice(0, 3)).map(toCard);
+  const createdAt = Object.fromEntries(
+    cars.map((car) => [car.id, car.createdAt.toISOString()])
+  ) as Record<string, string>;
+
+  const slides = cards
+    .filter((car) => car.imageUrl)
+    .slice(0, 5)
+    .map((car) => ({
+      id: car.id,
+      imageUrl: car.imageUrl,
+      alt: car.imageAlt || car.name || `${car.brand} ${car.model}`,
+      name: car.name || `${car.brand} ${car.model}`,
+      href: `/${lang}/cars/${car.slug}`,
+    }));
+
+  // Only categories that actually exist in the published fleet.
+  const categoryValues = Array.from(new Set(cars.map((car) => car.category)));
+  const categoryOptions = categoryValues.map((value) => ({
+    value,
+    label: tEnum(dict, "category", value),
+  }));
+
+  const agencies = await prisma.location.findMany({
+    where: { isActive: true },
+    select: { id: true, city: true },
+  });
+  const cityOptions = citySelectOptions(cityFacets(agencies), dict.destinations.items);
 
   return (
-    <div className="bg-[#050505]">
+    <div>
       {/* ------------------------------- Hero ------------------------------- */}
-      <section className="relative isolate min-h-[calc(100svh-5rem)] overflow-hidden">
-        <div className="absolute inset-0 -z-10">
-          {featured?.imageUrl ? (
-            <img
-              src={featured.imageUrl}
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 h-full w-full object-cover object-[70%_50%] sm:object-[65%_50%] lg:object-[58%_50%]"
-              loading="eager"
-              decoding="async"
-            />
-          ) : (
-            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-[position:70%_50%] bg-no-repeat" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-[#050505]/98 via-35% to-[#050505]/10 sm:via-45% lg:via-40% lg:to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/80 to-transparent" />
-          <div className="hero-grid absolute inset-0 opacity-60" aria-hidden="true" />
-          <div
-            aria-hidden="true"
-            className="absolute -start-40 top-1/3 h-[28rem] w-[28rem] rounded-full bg-gold/10 blur-[140px]"
-          />
-        </div>
+      <section className="relative isolate overflow-hidden">
+        <HeroCarousel slides={slides} fallbackImage={HERO_FALLBACK}>
+          <div className="container-site relative flex min-h-[78svh] items-center py-16 sm:py-20">
+            <div className="max-w-2xl animate-fade-up pb-28">
+              <p className="eyebrow eyebrow-light">{dict.home.heroBadge}</p>
 
-        <div className="container-luxe relative flex min-h-[calc(100svh-5rem)] items-center py-16 sm:py-20 lg:py-24">
-          <div className="max-w-2xl animate-fade-up">
-            <p className="eyebrow">{dict.home.heroBadge}</p>
+              <h1 className="mt-6 text-balance font-display text-[clamp(2.6rem,7vw,4.75rem)] font-bold leading-[1.02] tracking-tight text-white">
+                {dict.home.heroTitleLine1}
+                <span className="mt-1 block text-bronze-light">
+                  {dict.home.heroTitleLine2}
+                </span>
+              </h1>
 
-            <h1 className="mt-6 text-balance text-[clamp(2.8rem,9vw,6rem)] font-black uppercase leading-[0.92] tracking-[-0.03em]">
-              {dict.home.heroTitleLine1}
-              <span
-                className={`mt-2 block text-gold ${
-                  lang === "ar" ? "" : "font-serif font-medium italic tracking-[-0.02em]"
-                }`}
-              >
-                {dict.home.heroTitleLine2}
-              </span>
-            </h1>
+              <p className="mt-6 max-w-xl text-base leading-8 text-white/75 sm:text-lg">
+                {dict.home.heroText}
+              </p>
 
-            <p className="mt-7 max-w-xl text-base leading-8 text-white/70 sm:text-lg">
-              {dict.home.heroText}
-            </p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <Link href={`/${lang}/cars`} className="btn-primary w-full sm:w-auto">
+                  {dict.home.heroCtaPrimary}
+                  <ArrowRight className="h-4 w-4 rtl:-scale-x-100" aria-hidden />
+                </Link>
+                <Link href={`/${lang}/booking`} className="btn-outline w-full sm:w-auto">
+                  {dict.home.heroCtaSecondary}
+                </Link>
+              </div>
 
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-              <Link href={`/${lang}/cars`} className="btn-gold w-full sm:w-auto">
-                {dict.home.heroCtaPrimary}
-                <ArrowRight className="h-4 w-4 rtl:-scale-x-100" aria-hidden />
-              </Link>
-              <Link href={`/${lang}/booking`} className="btn-ghost w-full sm:w-auto">
-                {dict.home.heroCtaSecondary}
-              </Link>
+              <ul className="mt-10 grid max-w-3xl grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
+                {dict.home.trustChips.map((chip, index) => {
+                  const Icon = trustIcons[index] ?? ShieldCheck;
+                  return (
+                    <li key={chip.title} className="flex items-start gap-2.5">
+                      <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-bronze/45 bg-bronze/15 text-bronze-light">
+                        <Icon className="h-4 w-4" aria-hidden />
+                      </span>
+                      <span>
+                        <span className="block text-[13px] font-semibold leading-5 text-white">
+                          {chip.title}
+                        </span>
+                        <span className="block text-[11px] leading-4 text-white/55">
+                          {chip.desc}
+                        </span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
-
-            <dl className="mt-11 grid max-w-lg grid-cols-3 divide-x divide-white/10 border-y border-white/10 py-5 rtl:divide-x-reverse">
-              {dict.about.stats.map((stat) => (
-                <div key={stat.label} className="px-4 first:ps-0 last:pe-0">
-                  <dt className="text-[10px] uppercase leading-4 tracking-[0.14em] text-white/45">
-                    {stat.label}
-                  </dt>
-                  <dd className="mt-1 text-2xl font-bold text-ivory sm:text-3xl">
-                    {stat.value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
           </div>
+        </HeroCarousel>
+      </section>
+
+      {/* ----------------------------- Search ------------------------------ */}
+      <section className="container-site relative z-20 -mt-14 sm:-mt-16">
+        <SearchBar lang={lang} categories={categoryOptions} cities={cityOptions} />
+      </section>
+
+      {/* ------------------------------- Fleet ----------------------------- */}
+      <section className="py-14 sm:py-16 lg:py-20">
+        <div className="container-site">
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="max-w-2xl">
+              <p className="eyebrow">{dict.home.fleetEyebrow}</p>
+              <h2 className="heading-display mt-3 text-3xl sm:text-4xl lg:text-[2.75rem]">
+                {dict.home.fleetTitle}
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-muted">{dict.home.fleetText}</p>
+            </div>
+          </div>
+
+          <FleetGrid cars={cards} lang={lang} createdAt={createdAt} />
         </div>
       </section>
 
-      {/* ---------------------------- Fleet -------------------------------- */}
-      <section className="border-t border-white/5 py-16 sm:py-20 lg:py-24">
-        <div className="container-luxe">
-          <div className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-            <div className="max-w-2xl">
-              <p className="eyebrow">{dict.home.fleetEyebrow}</p>
-              <h2 className="mt-4 text-balance text-3xl font-bold tracking-tight text-ivory sm:text-4xl lg:text-5xl">
-                {dict.home.fleetTitle}
-              </h2>
-            </div>
-            <Link
-              href={`/${lang}/cars`}
-              className="inline-flex min-h-11 items-center gap-2 self-start text-[11px] font-bold uppercase tracking-[0.16em] text-white/60 transition-colors hover:text-gold sm:self-auto"
-            >
-              {dict.home.fleetSeeAll}
-              <ArrowUpRight className="h-4 w-4 rtl:-scale-x-100" aria-hidden />
-            </Link>
-          </div>
-
-          {fleet.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {fleet.map((car) => (
-                <CarCard key={car.id} car={car} lang={lang} />
-              ))}
-            </div>
-          ) : (
-            <p className="rounded-2xl border border-white/10 p-8 text-center text-white/50">
-              {dict.cars.empty}
-            </p>
-          )}
-        </div>
+      {/* ---------------------------- Categories --------------------------- */}
+      <section className="border-y border-line bg-cream-2 py-14 sm:py-16 lg:py-20">
+        <CarCategories lang={lang} />
       </section>
 
       {/* --------------------------- Advantages ---------------------------- */}
-      <section className="border-y border-white/5 bg-[#080808] py-16 sm:py-20 lg:py-24">
-        <div className="container-luxe">
+      <section className="py-14 sm:py-16 lg:py-20">
+        <div className="container-site">
           <div className="mx-auto max-w-2xl text-center">
             <p className="eyebrow eyebrow-center justify-center">{dict.home.advantagesEyebrow}</p>
-            <h2 className="mt-4 text-balance text-3xl font-bold tracking-tight text-ivory sm:text-4xl">
+            <h2 className="heading-display mt-3 text-3xl sm:text-4xl">
               {dict.home.advantagesTitle}
             </h2>
-            <p className="mt-4 text-sm leading-7 text-white/55 sm:text-base">
+            <p className="mt-4 text-sm leading-7 text-muted sm:text-base">
               {dict.home.advantagesText}
             </p>
           </div>
 
-          <div className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:mt-14 lg:grid-cols-4 lg:gap-4">
+          <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {dict.home.advantages.map((advantage, index) => {
               const Icon = advantageIcons[index] ?? ShieldCheck;
               return (
                 <div
                   key={advantage.title}
-                  className="group rounded-2xl border border-white/10 bg-white/[0.025] p-6 transition-colors duration-300 hover:border-gold/40 hover:bg-gold/[0.04]"
+                  className="card-site card-hover group p-6"
                 >
-                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gold/30 bg-gold/10 text-gold">
+                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-lg bg-forest-tint text-forest-ink">
                     <Icon className="h-5 w-5" aria-hidden />
                   </span>
-                  <h3 className="mt-5 text-base font-semibold text-ivory">
-                    {advantage.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-white/50">
-                    {advantage.desc}
-                  </p>
+                  <h3 className="mt-5 text-base font-semibold text-ink">{advantage.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-muted">{advantage.desc}</p>
                   <span
                     aria-hidden
-                    className="mt-5 block h-px w-8 bg-gold/50 transition-all duration-300 group-hover:w-14"
+                    className="mt-5 block h-0.5 w-8 rounded-full bg-bronze/60 transition-all duration-300 group-hover:w-14"
                   />
                 </div>
               );
@@ -199,27 +204,54 @@ export default async function Home({
         </div>
       </section>
 
-      {/* ------------------------------ CTA -------------------------------- */}
-      <section className="relative isolate overflow-hidden py-20 sm:py-24 lg:py-28">
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1920&auto=format&fit=crop')] bg-cover bg-center opacity-25" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-[#050505]/85 to-[#050505]/60" />
-        </div>
-
-        <div className="container-luxe">
-          <div className="max-w-2xl">
-            <p className="eyebrow">{dict.about.eyebrow}</p>
-            <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight text-ivory sm:text-4xl lg:text-5xl">
-              {dict.home.ctaTitle}
+      {/* -------------------------- Destinations --------------------------- */}
+      <section className="bg-cream-2 py-14 sm:py-16 lg:py-20">
+        <div className="container-site">
+          <div className="mb-8 max-w-2xl">
+            <p className="eyebrow">{dict.home.destinationsEyebrow}</p>
+            <h2 className="heading-display mt-3 text-2xl sm:text-3xl">
+              {dict.home.destinationsTitle}
             </h2>
-            <p className="mt-5 text-base leading-7 text-white/60 sm:text-lg">
-              {dict.home.ctaText}
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href={`/${lang}/cars`} className="btn-gold w-full sm:w-auto">
+            <p className="mt-3 text-sm leading-7 text-muted">{dict.home.destinationsText}</p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {dict.destinations.items.slice(0, 4).map((item) => (
+              <DestinationCard
+                key={item.slug}
+                item={item}
+                lang={lang}
+                ctaLabel={dict.destinations.viewDetails}
+              />
+            ))}
+          </div>
+
+          <div className="mt-8 flex justify-center">
+            <Link href={`/${lang}/destinations`} className="btn-dark">
+              {dict.home.destinationsCta}
+              <ArrowRight className="h-4 w-4 rtl:-scale-x-100" aria-hidden />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ------------------------------- CTA ------------------------------- */}
+      <section className="relative isolate overflow-hidden bg-forest py-16 sm:py-20">
+        <div aria-hidden className="zellige absolute inset-0 opacity-60" />
+        <div className="container-site relative">
+          <div className="flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-center">
+            <div className="max-w-2xl">
+              <p className="eyebrow eyebrow-light">{dict.home.heroBadge}</p>
+              <h2 className="mt-3 text-balance font-display text-3xl font-bold leading-tight text-white sm:text-4xl">
+                {dict.home.ctaTitle}
+              </h2>
+              <p className="mt-4 text-base leading-7 text-white/70">{dict.home.ctaText}</p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link href={`/${lang}/cars`} className="btn-primary w-full sm:w-auto">
                 {dict.home.ctaPrimary}
               </Link>
-              <Link href={`/${lang}/contact`} className="btn-ghost w-full sm:w-auto">
+              <Link href={`/${lang}/contact`} className="btn-outline w-full sm:w-auto">
                 {dict.home.ctaSecondary}
               </Link>
             </div>

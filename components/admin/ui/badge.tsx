@@ -9,14 +9,16 @@ export type BadgeTone =
   | "navy"
   | "accent";
 
+// The panel is a dark navy surface, so every tone is a tinted wash with a
+// matching bright label rather than a pale chip.
 const TONES: Record<BadgeTone, string> = {
-  neutral: "bg-slate-100 text-slate-600 border-slate-200",
-  success: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  warning: "bg-amber-50 text-amber-700 border-amber-200",
-  danger: "bg-red-50 text-red-700 border-red-200",
-  info: "bg-sky-50 text-sky-700 border-sky-200",
-  navy: "bg-[#e8edf7] text-admin-navy border-[#d3dcef]",
-  accent: "bg-[#fde8ea] text-[#b91c1c] border-[#f7c9ce]",
+  neutral: "bg-admin-neutral/10 text-admin-neutral border-admin-neutral/25",
+  success: "bg-admin-success/10 text-admin-success border-admin-success/25",
+  warning: "bg-admin-warning/10 text-admin-warning border-admin-warning/25",
+  danger: "bg-admin-danger/10 text-admin-danger border-admin-danger/25",
+  info: "bg-sky-400/10 text-sky-300 border-sky-400/25",
+  navy: "bg-admin-gold/10 text-admin-gold border-admin-gold/25",
+  accent: "bg-[#fa655e]/15 text-[#ff9b95] border-[#fa655e]/30",
 };
 
 export function Badge({

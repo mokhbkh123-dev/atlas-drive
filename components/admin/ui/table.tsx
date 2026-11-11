@@ -22,7 +22,7 @@ export function TH({
   return (
     <th
       className={cn(
-        "border-b border-admin-line bg-slate-50/80 px-4 py-2.5 text-start text-xs font-semibold uppercase tracking-wide text-admin-muted",
+        "border-b border-admin-line bg-admin-bg/60 px-4 py-2.5 text-start text-xs font-semibold uppercase tracking-wide text-admin-muted",
         className
       )}
       {...props}

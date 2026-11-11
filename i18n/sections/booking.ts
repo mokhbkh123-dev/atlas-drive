@@ -8,8 +8,8 @@ const fr = {
   // --- Formulaire (BookingForm.tsx) ---
   labels: {
     car: "Véhicule",
-    pickupAt: "Date et heure de prise en charge",
-    returnAt: "Date et heure de retour",
+    pickupAt: "Date de prise en charge",
+    returnAt: "Date de retour",
     pickupLocation: "Lieu de prise en charge",
     returnLocation: "Lieu de retour",
     name: "Nom complet",
@@ -79,8 +79,8 @@ export const booking: Record<Locale, typeof fr> = {
     subtitle: "Fill in the form below to send your request",
     labels: {
       car: "Vehicle",
-      pickupAt: "Pick-up date and time",
-      returnAt: "Return date and time",
+      pickupAt: "Pick-up date",
+      returnAt: "Return date",
       pickupLocation: "Pick-up location",
       returnLocation: "Return location",
       name: "Full name",
@@ -142,8 +142,8 @@ export const booking: Record<Locale, typeof fr> = {
     subtitle: "املأ النموذج أدناه لإرسال طلبك",
     labels: {
       car: "السيارة",
-      pickupAt: "تاريخ ووقت الاستلام",
-      returnAt: "تاريخ ووقت العودة",
+      pickupAt: "تاريخ الاستلام",
+      returnAt: "تاريخ العودة",
       pickupLocation: "مكان الاستلام",
       returnLocation: "مكان العودة",
       name: "الاسم الكامل",

@@ -1,24 +1,14 @@
-import { prisma } from "@/lib/prisma";
-
-const SITE_SETTING_KEY = "whatsapp_number";
+import { readSettings } from "@/lib/settings";
 
 export async function getOwnerWhatsAppNumber(): Promise<string | null> {
-  // Try environment variable first (public or server)
+  // A number the owner typed in /admin/settings wins over the environment:
+  // otherwise saving there would silently change nothing.
+  const stored = (await readSettings()).whatsapp_number;
+  if (stored) return normalizeNumber(stored);
+
   const envValue = process.env.WHATSAPP_NUMBER || process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
   if (envValue && envValue.trim()) {
     return normalizeNumber(envValue);
-  }
-
-  try {
-    const setting = await prisma.siteSetting.findUnique({
-      where: { key: SITE_SETTING_KEY },
-    });
-    if (setting?.value && setting.value.trim()) {
-      return normalizeNumber(setting.value);
-    }
-  } catch (error) {
-    // Ignore DB errors and fall through
-    console.error("Failed to read WhatsApp number from settings:", error);
   }
 
   return null;

@@ -67,7 +67,7 @@ export function Field({
         <p className="mt-1 text-xs text-admin-muted">{hint}</p>
       ) : null}
       {error ? (
-        <p role="alert" className="mt-1 text-xs font-medium text-[#b91c1c]">
+        <p role="alert" className="mt-1 text-xs font-medium text-admin-danger">
           {error}
         </p>
       ) : null}

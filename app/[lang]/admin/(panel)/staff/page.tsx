@@ -3,7 +3,7 @@ import { UserCog, UserPlus, ShieldCheck } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
 import { requireModule } from "@/lib/rbac";
-import { resolveLocale } from "@/i18n";
+import { getDict, resolveLocale } from "@/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +14,8 @@ export default async function AdminStaffPage({
 }) {
   const lang = await resolveLocale(params);
   await requireModule(lang, "staff");
+  const dict = getDict(lang);
+  const t = dict.staff;
 
   let users: any[] = [];
   try {
@@ -31,10 +33,13 @@ export default async function AdminStaffPage({
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-[#f4f5f7]">Utilisateurs</h1>
+        <div>
+          <h1 className="text-lg font-semibold text-[#f4f5f7]">{t.title}</h1>
+          <p className="mt-1 text-xs text-[#8190a1]">{t.subtitle}</p>
+        </div>
         <Link href={`/${lang}/admin/staff/new`} className="inline-flex items-center gap-2 rounded-lg bg-[#e5b94f] px-3 py-2 text-sm font-medium text-black hover:bg-[#f6d57a]">
           <UserPlus className="h-4 w-4" />
-          Nouvel utilisateur
+          {t.add}
         </Link>
       </div>
 
@@ -43,12 +48,12 @@ export default async function AdminStaffPage({
           <table className="w-full text-sm">
             <thead className="bg-[#111b27]">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-[#b5c0cd]">Nom</th>
-                <th className="px-4 py-3 text-left font-medium text-[#b5c0cd]">Email</th>
-                <th className="px-4 py-3 text-left font-medium text-[#b5c0cd]">Rôle</th>
-                <th className="px-4 py-3 text-left font-medium text-[#b5c0cd]">Statut</th>
-                <th className="px-4 py-3 text-left font-medium text-[#b5c0cd]">Créé le</th>
-                <th className="px-4 py-3 text-left font-medium text-[#b5c0cd]">Dernière connexion</th>
+                <th className="px-4 py-3 text-left font-medium text-[#b5c0cd]">{t.columns.name}</th>
+                <th className="px-4 py-3 text-left font-medium text-[#b5c0cd]">{t.columns.email}</th>
+                <th className="px-4 py-3 text-left font-medium text-[#b5c0cd]">{t.columns.role}</th>
+                <th className="px-4 py-3 text-left font-medium text-[#b5c0cd]">{t.columns.status}</th>
+                <th className="px-4 py-3 text-left font-medium text-[#b5c0cd]">{t.columns.createdAt}</th>
+                <th className="px-4 py-3 text-left font-medium text-[#b5c0cd]">{t.columns.lastLogin}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#202c3a]">
@@ -56,7 +61,7 @@ export default async function AdminStaffPage({
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-[#8190a1]">
                     <UserCog className="mx-auto mb-2 h-6 w-6" />
-                    Aucun utilisateur trouvé
+                    {t.empty}
                   </td>
                 </tr>
               ) : (
@@ -67,12 +72,12 @@ export default async function AdminStaffPage({
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center gap-1 rounded-full bg-[#e5b94f]/10 px-2 py-0.5 text-xs text-[#e5b94f]">
                         <ShieldCheck className="h-3 w-3" />
-                        {u.role}
+                        {dict.enums.role[u.role as keyof typeof dict.enums.role] ?? u.role}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs ${u.isActive ? "bg-[#27d99a]/10 text-[#27d99a]" : "bg-[#fa655e]/10 text-[#fa655e]"}`}>
-                        {u.isActive ? "Actif" : "Inactif"}
+                        {u.isActive ? t.status.active : t.status.inactive}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-[#b5c0cd]">{formatDate(u.createdAt)}</td>

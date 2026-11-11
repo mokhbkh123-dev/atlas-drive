@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, CarFront } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
-import { getDict, type Locale } from "@/i18n";
+import { getDict, canonicalEnum, type Locale } from "@/i18n";
 
 type CategoryKey = "sport" | "sedan" | "suv" | "supercar" | "automatic" | "budget";
 
@@ -35,6 +35,13 @@ export default async function CarCategories({ lang }: { lang: Locale }) {
   const cars = await loadCars();
   if (cars.length === 0) return null;
 
+  // "Budget" is relative to this fleet: the cheaper half of the published cars.
+  // The card is skipped when that cut would just repeat the whole fleet.
+  const sortedPrices = cars
+    .map((car) => Number(car.dailyPrice))
+    .sort((a, b) => a - b);
+  const budgetCeiling = sortedPrices[Math.floor((sortedPrices.length - 1) / 2)] ?? 0;
+
   const definitions: {
     key: CategoryKey;
     href: string;
@@ -43,32 +50,32 @@ export default async function CarCategories({ lang }: { lang: Locale }) {
     {
       key: "sedan",
       href: `/${lang}/cars?category=Berline`,
-      match: (car) => car.category === "Berline",
+      match: (car) => canonicalEnum("category", car.category) === "Berline",
     },
     {
       key: "suv",
       href: `/${lang}/cars?category=SUV`,
-      match: (car) => car.category === "SUV",
+      match: (car) => canonicalEnum("category", car.category) === "SUV",
     },
     {
       key: "sport",
       href: `/${lang}/cars?category=Sport`,
-      match: (car) => car.category === "Sport",
+      match: (car) => canonicalEnum("category", car.category) === "Sport",
     },
     {
       key: "supercar",
       href: `/${lang}/cars?category=Supercar`,
-      match: (car) => car.category === "Supercar",
+      match: (car) => canonicalEnum("category", car.category) === "Supercar",
     },
     {
       key: "automatic",
       href: `/${lang}/cars?transmission=Automatique`,
-      match: (car) => car.transmission === "Automatique",
+      match: (car) => canonicalEnum("transmission", car.transmission) === "Automatique",
     },
     {
       key: "budget",
-      href: `/${lang}/cars?maxPrice=2500`,
-      match: (car) => Number(car.dailyPrice) <= 2500,
+      href: `/${lang}/cars?maxPrice=${budgetCeiling}`,
+      match: (car) => Number(car.dailyPrice) <= budgetCeiling,
     },
   ];
 
@@ -86,6 +93,8 @@ export default async function CarCategories({ lang }: { lang: Locale }) {
   for (const definition of definitions) {
     const matching = cars.filter(definition.match);
     if (matching.length === 0) continue;
+    // A "budget" card listing every car says nothing; skip it.
+    if (definition.key === "budget" && matching.length === cars.length) continue;
 
     const pick =
       matching.find((car) => {
@@ -109,110 +118,77 @@ export default async function CarCategories({ lang }: { lang: Locale }) {
   if (cards.length === 0) return null;
 
   return (
-    <section
-      aria-labelledby="categories-title"
-      className="relative overflow-hidden bg-[#f5f4f0] py-20 text-[#0b1630] sm:py-24 lg:py-28"
-    >
-      {/* Subtle gold ambience */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -end-32 -top-32 h-80 w-80 rounded-full bg-[#c9a227]/10 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-40 -start-24 h-72 w-72 rounded-full bg-[#0b1630]/5 blur-3xl"
-      />
-
-      <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="mb-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-2xl">
-            <div className="mb-4 flex items-center gap-3">
-              <span className="h-px w-10 bg-[#c9a227]" aria-hidden />
-              <span className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#a17f1e]">
-                {t.categoriesEyebrow}
-              </span>
-            </div>
-            <h2
-              id="categories-title"
-              className="text-3xl font-black uppercase tracking-tight text-[#0b1630] sm:text-4xl lg:text-[2.75rem] lg:leading-[1.1]"
-            >
-              {t.categoriesTitle}
-            </h2>
-            <p className="mt-4 max-w-xl text-sm leading-relaxed text-[#0b1630]/60 sm:text-base">
-              {t.categoriesSubtitle}
-            </p>
-          </div>
-
-          <Link
-            href={`/${lang}/cars`}
-            className="inline-flex items-center gap-2 self-start text-xs font-bold uppercase tracking-[0.18em] text-[#0b1630] transition-colors hover:text-[#a17f1e] md:self-auto"
-          >
-            {t.fleetSeeAll}
-            <ArrowUpRight className="h-4 w-4 rtl:-scale-x-100" aria-hidden />
-          </Link>
+    <div className="container-site" aria-labelledby="categories-title">
+      <div className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+        <div className="max-w-2xl">
+          <p className="eyebrow">{t.categoriesEyebrow}</p>
+          <h2 id="categories-title" className="heading-display mt-3 text-3xl sm:text-4xl">
+            {t.categoriesTitle}
+          </h2>
+          <p className="mt-3 text-sm leading-7 text-muted">{t.categoriesSubtitle}</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-7">
-          {cards.map((card) => {
-            const countLabel =
-              card.count === 1
-                ? t.categoriesCountOne
-                : t.categoriesCountMany.replace("{count}", String(card.count));
-
-            return (
-              <Link
-                key={card.key}
-                href={card.href}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-[#0b1630]/10 bg-white shadow-[0_1px_2px_rgba(11,22,48,0.05)] transition-all duration-300 hover:-translate-y-1 hover:border-[#c9a227]/50 hover:shadow-[0_24px_48px_-24px_rgba(11,22,48,0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c9a227]"
-              >
-                <div className="relative aspect-[4/3] overflow-hidden bg-[#0b1630]">
-                  {card.image ? (
-                    <img
-                      src={card.image}
-                      alt={card.name}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06]"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <CarFront className="h-12 w-12 text-white/20" aria-hidden />
-                    </div>
-                  )}
-                  <div
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0b1630]/45 via-transparent to-transparent opacity-60"
-                  />
-                  <span className="absolute start-4 top-4 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold tracking-wide text-[#0b1630] shadow-sm backdrop-blur">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#c9a227]" aria-hidden />
-                    {countLabel}
-                  </span>
-                </div>
-
-                <div className="flex flex-1 flex-col p-5 sm:p-6">
-                  <h3 className="text-xl font-semibold tracking-tight text-[#0b1630]">
-                    {card.name}
-                  </h3>
-                  <p className="mt-2 flex-1 text-sm leading-relaxed text-[#0b1630]/60">
-                    {card.description}
-                  </p>
-
-                  <div className="mt-5 flex items-center justify-between border-t border-[#0b1630]/10 pt-4">
-                    <span className="inline-flex items-center gap-2 rounded-full bg-[#0b1630] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white transition-colors duration-300 group-hover:bg-[#c9a227] group-hover:text-[#0b1630]">
-                      {t.categoriesCta}
-                      <ArrowUpRight className="h-3.5 w-3.5 rtl:-scale-x-100" aria-hidden />
-                    </span>
-                    <span
-                      aria-hidden
-                      className="h-px w-8 bg-[#c9a227]/60 transition-all duration-300 group-hover:w-12"
-                    />
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+        <Link
+          href={`/${lang}/cars`}
+          className="inline-flex min-h-10 items-center gap-2 self-start text-xs font-semibold text-forest-ink transition-colors hover:text-bronze-dark md:self-auto"
+        >
+          {t.fleetSeeAll}
+          <ArrowUpRight className="h-4 w-4 rtl:-scale-x-100" aria-hidden />
+        </Link>
       </div>
-    </section>
+
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {cards.map((card) => {
+          const countLabel =
+            card.count === 1
+              ? t.categoriesCountOne
+              : t.categoriesCountMany.replace("{count}", String(card.count));
+
+          return (
+            <Link
+              key={card.key}
+              href={card.href}
+              className="card-site card-hover group flex flex-col overflow-hidden"
+            >
+              <div className="relative aspect-[16/10] overflow-hidden bg-cream-2">
+                {card.image ? (
+                  <img
+                    src={card.image}
+                    alt={card.name}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06]"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <CarFront className="h-12 w-12 text-line-strong" aria-hidden />
+                  </div>
+                )}
+                <span className="chip absolute start-3 top-3 !border-transparent !bg-paper/90 !text-ink">
+                  <span className="h-1.5 w-1.5 rounded-full bg-bronze" aria-hidden />
+                  {countLabel}
+                </span>
+              </div>
+
+              <div className="flex flex-1 flex-col p-5">
+                <h3 className="text-lg font-semibold tracking-tight text-ink">{card.name}</h3>
+                <p className="mt-2 flex-1 text-sm leading-6 text-muted">{card.description}</p>
+
+                <div className="mt-5 flex items-center justify-between border-t border-line pt-4">
+                  <span className="btn-dark !min-h-9 !px-3.5 !text-[11px]">
+                    {t.categoriesCta}
+                    <ArrowUpRight className="h-3.5 w-3.5 rtl:-scale-x-100" aria-hidden />
+                  </span>
+                  <span
+                    aria-hidden
+                    className="h-0.5 w-8 rounded-full bg-bronze/50 transition-all duration-300 group-hover:w-12"
+                  />
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
   );
 }

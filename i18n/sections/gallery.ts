@@ -5,6 +5,7 @@ const fr = {
   title: "NOTRE",
   titleHighlight: "UNIVERS",
   subtitle: "Plongez dans l'élégance et la puissance de notre collection",
+  empty: "Aucune photo disponible pour le moment.",
   cta: "Réserver un véhicule",
 };
 
@@ -19,6 +20,7 @@ export const gallery: Record<Locale, typeof fr> = {
     title: "OUR",
     titleHighlight: "UNIVERSE",
     subtitle: "Immerse yourself in the elegance and power of our collection",
+    empty: "No photos available yet.",
     cta: "Book a vehicle",
   },
   ar: {
@@ -26,6 +28,7 @@ export const gallery: Record<Locale, typeof fr> = {
     title: "اكتشف",
     titleHighlight: "عالمنا",
     subtitle: "اغمس في أناقة وقوة مجموعتنا",
+    empty: "لا تتوفر صور حالياً.",
     cta: "احجز سيارة",
   },
 };

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, MessageCircle, ShieldCheck } from "lucide-react";
+import { ArrowRight, ImageOff, MapPin, MessageCircle, ShieldCheck } from "lucide-react";
 import { getDict, type Locale } from "@/i18n";
 import { calculateRentalDuration } from "@/lib/booking-pricing";
 
@@ -19,11 +19,17 @@ export default function BookingForm({
   selectedCarId,
   lang,
   whatsappNumber,
+  initialPickupAt = "",
+  initialReturnAt = "",
+  initialPickupLocation = "",
 }: {
   cars: Car[];
   selectedCarId?: string;
   lang: Locale;
   whatsappNumber: string | null;
+  initialPickupAt?: string;
+  initialReturnAt?: string;
+  initialPickupLocation?: string;
 }) {
   const dict = getDict(lang);
   const [formData, setFormData] = useState({
@@ -31,9 +37,9 @@ export default function BookingForm({
     firstName: "",
     lastName: "",
     customerPhone: "",
-    pickupAt: "",
-    returnAt: "",
-    pickupLocation: "",
+    pickupAt: initialPickupAt,
+    returnAt: initialReturnAt,
+    pickupLocation: initialPickupLocation,
     returnLocation: "",
     customerNotes: "",
   });
@@ -168,46 +174,44 @@ export default function BookingForm({
       {error && (
         <div
           role="alert"
-          className="rounded-xl border border-red-400/35 bg-red-500/10 px-4 py-3.5 text-sm text-red-200 lg:col-span-2"
+          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3.5 text-sm font-medium text-red-700 lg:col-span-2"
         >
           {error}
         </div>
       )}
 
-      <div className="card-luxe space-y-8 p-5 sm:p-7 lg:p-8">
+      <div className="card-site space-y-8 p-5 sm:p-7 lg:p-8">
         {/* Vehicle */}
         <section aria-labelledby="booking-vehicle">
           <div className="flex items-center justify-between gap-3">
-            <h2
-              id="booking-vehicle"
-              className="text-[11px] font-bold uppercase tracking-[0.2em] text-gold"
-            >
+            <h2 id="booking-vehicle" className="eyebrow">
               {dict.booking.labels.car}
             </h2>
             <Link
               href={`/${lang}/cars`}
-              className="inline-flex min-h-8 items-center text-[10px] font-bold uppercase tracking-[0.14em] text-white/40 transition-colors hover:text-gold"
+              className="inline-flex min-h-8 items-center text-[10px] font-bold uppercase tracking-[0.14em] text-muted transition-colors hover:text-bronze-dark"
             >
               {dict.home.fleetSeeAll}
             </Link>
           </div>
 
           {selectedCar ? (
-            <div className="mt-4 flex items-center gap-4 rounded-xl border border-gold/25 bg-gold/[0.06] p-3">
+            <div className="mt-4 flex items-center gap-4 rounded-xl border border-bronze/30 bg-bronze-soft p-3">
               {carImage ? (
                 <img
                   src={carImage.url}
                   alt={carLabel}
                   className="h-16 w-24 shrink-0 rounded-lg object-cover"
                   loading="lazy"
+                  decoding="async"
                 />
               ) : (
-                <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-lg bg-white/5">
-                  <ShieldCheck className="h-5 w-5 text-gold" aria-hidden />
+                <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-lg bg-cream-2">
+                  <ShieldCheck className="h-5 w-5 text-bronze" aria-hidden />
                 </div>
               )}
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-ivory">{carLabel}</p>
+                <p className="truncate text-sm font-semibold text-ink">{carLabel}</p>
               </div>
             </div>
           ) : (
@@ -220,7 +224,7 @@ export default function BookingForm({
                 required
                 value={formData.carId}
                 onChange={(e) => setFormData({ ...formData, carId: e.target.value })}
-                className="input-luxe"
+                className="field"
               >
                 <option value="">{dict.booking.carPlaceholder}</option>
                 {cars.map((car) => (
@@ -233,24 +237,18 @@ export default function BookingForm({
           )}
         </section>
 
-        <div className="gold-rule" aria-hidden />
+        <div className="rule-gold" aria-hidden />
 
         {/* Personal details */}
         <section aria-labelledby="booking-contact" className="space-y-5">
-          <h2
-            id="booking-contact"
-            className="text-[11px] font-bold uppercase tracking-[0.2em] text-gold"
-          >
+          <h2 id="booking-contact" className="eyebrow">
             {dict.booking.firstName} · {dict.booking.lastName}
           </h2>
 
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
-              <label
-                htmlFor="firstName"
-                className="block text-[10px] font-bold uppercase tracking-[0.16em] text-white/50"
-              >
-                {dict.booking.firstName || "First Name"} <span className="text-gold">*</span>
+              <label htmlFor="firstName" className="field-label mb-2">
+                {dict.booking.firstName || "First Name"} <span className="text-bronze">*</span>
               </label>
               <input
                 type="text"
@@ -259,15 +257,12 @@ export default function BookingForm({
                 autoComplete="given-name"
                 value={formData.firstName}
                 onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                className="input-luxe mt-2"
+                className="field"
               />
             </div>
             <div>
-              <label
-                htmlFor="lastName"
-                className="block text-[10px] font-bold uppercase tracking-[0.16em] text-white/50"
-              >
-                {dict.booking.lastName || "Last Name"} <span className="text-gold">*</span>
+              <label htmlFor="lastName" className="field-label mb-2">
+                {dict.booking.lastName || "Last Name"} <span className="text-bronze">*</span>
               </label>
               <input
                 type="text"
@@ -276,17 +271,14 @@ export default function BookingForm({
                 autoComplete="family-name"
                 value={formData.lastName}
                 onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                className="input-luxe mt-2"
+                className="field"
               />
             </div>
           </div>
 
           <div>
-            <label
-              htmlFor="customerPhone"
-              className="block text-[10px] font-bold uppercase tracking-[0.16em] text-white/50"
-            >
-              {dict.booking.labels.phone} <span className="text-gold">*</span>
+            <label htmlFor="customerPhone" className="field-label mb-2">
+              {dict.booking.labels.phone} <span className="text-bronze">*</span>
             </label>
             <input
               type="tel"
@@ -296,35 +288,29 @@ export default function BookingForm({
               inputMode="tel"
               value={formData.customerPhone}
               onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
-              className="input-luxe mt-2"
+              className="field"
             />
           </div>
         </section>
 
-        <div className="gold-rule" aria-hidden />
+        <div className="rule-gold" aria-hidden />
 
         {/* Dates & locations */}
         <section aria-labelledby="booking-rental" className="space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2
-              id="booking-rental"
-              className="text-[11px] font-bold uppercase tracking-[0.2em] text-gold"
-            >
+            <h2 id="booking-rental" className="eyebrow">
               {dict.booking.labels.pickupAt} · {dict.booking.labels.returnAt}
             </h2>
-            <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-white/40">
-              <ShieldCheck className="h-3.5 w-3.5 text-gold" aria-hidden />
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+              <ShieldCheck className="h-3.5 w-3.5 text-bronze" aria-hidden />
               {dict.booking.minDurationHint}
             </span>
           </div>
 
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
-              <label
-                htmlFor="pickupAt"
-                className="block text-[10px] font-bold uppercase tracking-[0.16em] text-white/50"
-              >
-                {dict.booking.labels.pickupAt} <span className="text-gold">*</span>
+              <label htmlFor="pickupAt" className="field-label mb-2">
+                {dict.booking.labels.pickupAt} <span className="text-bronze">*</span>
               </label>
               <input
                 type="date"
@@ -335,15 +321,12 @@ export default function BookingForm({
                   setFormData({ ...formData, pickupAt: e.target.value });
                   if (error) setError("");
                 }}
-                className="input-luxe mt-2 [color-scheme:dark]"
+                className="field [color-scheme:light]"
               />
             </div>
             <div>
-              <label
-                htmlFor="returnAt"
-                className="block text-[10px] font-bold uppercase tracking-[0.16em] text-white/50"
-              >
-                {dict.booking.labels.returnAt} <span className="text-gold">*</span>
+              <label htmlFor="returnAt" className="field-label mb-2">
+                {dict.booking.labels.returnAt} <span className="text-bronze">*</span>
               </label>
               <input
                 type="date"
@@ -354,18 +337,16 @@ export default function BookingForm({
                   setFormData({ ...formData, returnAt: e.target.value });
                   if (error) setError("");
                 }}
-                className="input-luxe mt-2 [color-scheme:dark]"
+                className="field [color-scheme:light]"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
-              <label
-                htmlFor="pickupLocation"
-                className="block text-[10px] font-bold uppercase tracking-[0.16em] text-white/50"
-              >
-                {dict.booking.labels.pickupLocation} <span className="text-gold">*</span>
+              <label htmlFor="pickupLocation" className="field-label mb-2">
+                <MapPin className="h-3.5 w-3.5 text-bronze" aria-hidden />
+                {dict.booking.labels.pickupLocation} <span className="text-bronze">*</span>
               </label>
               <input
                 type="text"
@@ -373,16 +354,13 @@ export default function BookingForm({
                 required
                 value={formData.pickupLocation}
                 onChange={(e) => setFormData({ ...formData, pickupLocation: e.target.value })}
-                className="input-luxe mt-2"
+                className="field"
               />
             </div>
             <div>
-              <label
-                htmlFor="returnLocation"
-                className="block text-[10px] font-bold uppercase tracking-[0.16em] text-white/50"
-              >
+              <label htmlFor="returnLocation" className="field-label mb-2">
                 {dict.booking.labels.returnLocation}{" "}
-                <span className="normal-case tracking-normal text-white/30">
+                <span className="normal-case tracking-normal text-muted/70">
                   ({lang === "ar" ? "اختياري" : lang === "en" ? "optional" : "facultatif"})
                 </span>
               </label>
@@ -391,16 +369,13 @@ export default function BookingForm({
                 id="returnLocation"
                 value={formData.returnLocation}
                 onChange={(e) => setFormData({ ...formData, returnLocation: e.target.value })}
-                className="input-luxe mt-2"
+                className="field"
               />
             </div>
           </div>
 
           <div>
-            <label
-              htmlFor="customerNotes"
-              className="block text-[10px] font-bold uppercase tracking-[0.16em] text-white/50"
-            >
+            <label htmlFor="customerNotes" className="field-label mb-2">
               {dict.booking.labels.notes}
             </label>
             <textarea
@@ -408,7 +383,7 @@ export default function BookingForm({
               rows={3}
               value={formData.customerNotes}
               onChange={(e) => setFormData({ ...formData, customerNotes: e.target.value })}
-              className="input-luxe mt-2 resize-y"
+              className="field resize-y"
             />
           </div>
         </section>
@@ -416,74 +391,67 @@ export default function BookingForm({
 
       <aside className="space-y-4 lg:sticky lg:top-24">
         {selectedCar && (
-          <div className="card-luxe overflow-hidden">
-            <div className="relative aspect-[16/9] bg-[#101010]">
+          <div className="card-site overflow-hidden">
+            <div className="relative aspect-[16/9] bg-cream-2">
               {carImage ? (
                 <img
                   src={carImage.url}
                   alt={carLabel}
                   className="h-full w-full object-cover"
                   loading="lazy"
+                  decoding="async"
                 />
               ) : (
                 <div className="flex h-full items-center justify-center">
-                  <ShieldCheck className="h-10 w-10 text-gold/40" aria-hidden />
+                  <ImageOff className="h-8 w-8 text-line-strong" aria-hidden />
                 </div>
               )}
-              <div
-                aria-hidden
-                className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent"
-              />
-              <div className="absolute inset-x-4 bottom-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold">
-                  {dict.booking.labels.car}
-                </p>
-                <p className="mt-1 truncate text-lg font-semibold text-ivory">{carLabel}</p>
-              </div>
+            </div>
+            <div className="border-t border-line px-4 py-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-bronze">
+                {dict.booking.labels.car}
+              </p>
+              <p className="mt-1 truncate text-base font-semibold text-ink">{carLabel}</p>
             </div>
           </div>
         )}
 
-        <div className="card-luxe p-5">
-          <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-gold">
-            {dict.booking.summary.heading}
-          </h3>
+        <div className="card-site p-5">
+          <h3 className="eyebrow">{dict.booking.summary.heading}</h3>
 
           {formData.pickupAt && formData.returnAt ? (
             <div className="mt-4 space-y-2.5 text-sm">
-              <p className="text-white/60">
+              <p className="font-medium text-ink">
                 {dict.booking.summary.days.replace("{days}", String(days))}
               </p>
-              <p className="border-t border-white/10 pt-3 text-xs leading-5 text-white/45">
+              <p className="border-t border-line pt-3 text-xs leading-5 text-muted">
                 {dict.booking.summary.priceOnRequest}
               </p>
             </div>
           ) : (
-            <p className="mt-3 text-sm leading-6 text-white/45">
-              {dict.booking.minDurationHint}
-            </p>
+            <p className="mt-3 text-sm leading-6 text-muted">{dict.booking.minDurationHint}</p>
           )}
 
           {formData.pickupAt && formData.returnAt && (
             <>
               {!rental.validRange ? (
-                <p className="mt-4 rounded-lg border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs font-medium leading-5 text-amber-200">
+                <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium leading-5 text-amber-800">
                   {dict.booking.errors.invalidDates}
                 </p>
               ) : !rental.meetsMinimum ? (
-                <p className="mt-4 rounded-lg border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs font-medium leading-5 text-amber-200">
+                <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium leading-5 text-amber-800">
                   {dict.booking.errors.minDuration}
                 </p>
               ) : null}
             </>
           )}
 
-          <p className="mt-4 border-t border-white/10 pt-3 text-[11px] leading-5 text-white/40">
+          <p className="mt-4 border-t border-line pt-3 text-[11px] leading-5 text-muted">
             {dict.booking.whatsappNote}
           </p>
 
           {!whatsappNumber && (
-            <p className="mt-3 rounded-lg border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-200">
+            <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
               {dict.booking.whatsappMissing}
             </p>
           )}
@@ -491,7 +459,7 @@ export default function BookingForm({
           <button
             type="submit"
             disabled={loading || !whatsappNumber}
-            className="btn-gold mt-5 w-full !text-[11px] disabled:cursor-not-allowed disabled:opacity-45"
+            className="btn-primary mt-5 w-full !text-[11px] disabled:cursor-not-allowed disabled:opacity-45"
           >
             <MessageCircle className="h-4 w-4" aria-hidden />
             {loading

@@ -95,7 +95,7 @@ export default function NotificationsBell({
         >
           <Bell className="h-4.5 w-4.5" aria-hidden />
           {unread > 0 ? (
-            <span className="absolute -top-0.5 -end-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-admin-red px-1 text-[10px] font-bold text-white">
+            <span className="absolute -top-0.5 -end-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#b91c1c] px-1 text-[10px] font-bold text-white">
               {unread > 9 ? "9+" : unread}
             </span>
           ) : null}

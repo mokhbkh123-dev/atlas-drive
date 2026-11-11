@@ -7,6 +7,7 @@ const fr = {
     SUV: "SUV",
     Berline: "Berline",
     Supercar: "Supercar",
+    Utility: "Utilitaire",
   },
   /** Car.transmission values stored in the DB. */
   transmission: {
@@ -119,6 +120,7 @@ export const enums: Record<Locale, typeof fr> = {
       SUV: "SUV",
       Berline: "Sedan",
       Supercar: "Supercar",
+      Utility: "Utility",
     },
     transmission: {
       Automatique: "Automatic",
@@ -210,6 +212,7 @@ export const enums: Record<Locale, typeof fr> = {
       SUV: "دفع رباعي",
       Berline: "سيدان",
       Supercar: "سيارة خارقة",
+      Utility: "نفعية",
     },
     transmission: {
       Automatique: "أوتوماتيك",

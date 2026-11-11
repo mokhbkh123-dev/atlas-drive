@@ -1,18 +1,34 @@
-import { Suspense } from "react";
-import Link from "next/link";
-import {
-  Car,
-  CalendarDays,
-  Users,
-  TrendingUp,
-  ArrowRight,
-} from "lucide-react";
-
 import { prisma } from "@/lib/prisma";
 import { requireModule } from "@/lib/rbac";
-import { formatCurrency } from "@/lib/utils";
-import { getDict, resolveLocale, tEnum } from "@/i18n";
+import { resolveLocale } from "@/i18n";
+import { RESERVED_BOOKING_STATUSES } from "@/lib/booking-availability";
 import AtlasDashboard from "@/components/admin/dashboard/atlas-dashboard";
+import type { BookingStatus } from "@prisma/client";
+
+export const dynamic = "force-dynamic";
+
+/** Bookings whose contracted total still counts toward the estimate. */
+const BILLABLE_STATUSES: BookingStatus[] = [...RESERVED_BOOKING_STATUSES, "COMPLETED"];
+
+const TREND_MONTHS = 6;
+
+/**
+ * Month buckets [oldest..newest] labelled by their `YYYY-MM` key. Built here so
+ * the client component never has to guess which months the series covers.
+ */
+function monthBuckets(now: Date) {
+  return Array.from({ length: TREND_MONTHS }, (_, index) => {
+    const start = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (TREND_MONTHS - 1 - index), 1)
+    );
+    const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
+    return {
+      key: `${start.getUTCFullYear()}-${String(start.getUTCMonth() + 1).padStart(2, "0")}`,
+      start,
+      end,
+    };
+  });
+}
 
 export default async function AdminDashboard({
   params,
@@ -22,53 +38,93 @@ export default async function AdminDashboard({
   const lang = await resolveLocale(params);
   await requireModule(lang, "dashboard");
 
-  const [totalCars, totalBookings, totalCustomers, recentBookings, allBookings] = await Promise.all([
+  const now = new Date();
+  const [
+    publishedCars,
+    totalCars,
+    pendingRequests,
+    confirmedBookings,
+    ongoingRentals,
+    collected,
+    createdDates,
+    statusCountsRaw,
+    upcoming,
+    recentBookings,
+  ] = await Promise.all([
+    prisma.car.count({ where: { status: "PUBLISHED" } }),
     prisma.car.count(),
-    prisma.booking.count(),
-    prisma.customer.count(),
+    prisma.booking.count({ where: { status: "PENDING" } }),
+    prisma.booking.count({ where: { status: { in: ["CONFIRMED", "READY_FOR_PICKUP"] } } }),
+    prisma.booking.count({ where: { status: "IN_PROGRESS" } }),
+    // Only money that exists as a recorded payment is "encaissée" (PRD 193).
+    prisma.payment.aggregate({
+      where: { status: "PAID" },
+      _sum: { amount: true },
+    }),
+    prisma.booking.findMany({ select: { createdAt: true } }),
+    prisma.booking.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma.booking.findMany({
+      where: { status: { in: RESERVED_BOOKING_STATUSES }, pickupAt: { gte: now } },
+      take: 5,
+      orderBy: { pickupAt: "asc" },
+      include: { car: true },
+    }),
     prisma.booking.findMany({
       take: 5,
       orderBy: { createdAt: "desc" },
       include: { car: true },
     }),
-    prisma.booking.findMany({
-      select: { status: true, totalPrice: true, createdAt: true },
-    }),
   ]);
 
-  // Calculate revenue
-  const confirmedStatuses = ["CONFIRMED", "READY_FOR_PICKUP", "IN_PROGRESS", "COMPLETED"];
-  const revenue = allBookings
-    .filter((b) => confirmedStatuses.includes(b.status))
-    .reduce((sum, b) => sum + Number(b.totalPrice || 0), 0);
+  const estimated = await prisma.booking.aggregate({
+    where: { status: { in: BILLABLE_STATUSES } },
+    _sum: { totalPrice: true },
+  });
 
-  // Status counts
-  const statusCounts = {
-    CONFIRMED: allBookings.filter((b) => b.status === "CONFIRMED" || b.status === "COMPLETED" || b.status === "IN_PROGRESS" || b.status === "READY_FOR_PICKUP").length,
-    PENDING: allBookings.filter((b) => b.status === "PENDING").length,
-    CANCELLED: allBookings.filter((b) => b.status === "CANCELLED" || b.status === "REJECTED").length,
-  };
+  const buckets = monthBuckets(now);
+  const monthly = buckets.map((bucket) => ({
+    month: bucket.key,
+    count: createdDates.filter((b) => b.createdAt >= bucket.start && b.createdAt < bucket.end).length,
+  }));
+
+  const label = (car: { name: string | null; brand: string; model: string } | null) =>
+    car ? car.name || `${car.brand} ${car.model}` : "-";
+
+  const statusCounts = statusCountsRaw
+    .map((row) => ({ status: row.status, count: row._count._all }))
+    .filter((row) => row.count > 0)
+    .sort((a, b) => b.count - a.count);
+
+  const mapBooking = (b: (typeof recentBookings)[number]) => ({
+    id: b.id,
+    publicRef: b.publicRef,
+    customerName: b.customerName,
+    carName: label(b.car),
+    pickupAt: b.pickupAt,
+    returnAt: b.returnAt,
+    pickupLocation: b.pickupLocation,
+    status: b.status,
+    totalPrice: Number(b.totalPrice),
+  });
 
   return (
     <AtlasDashboard
       lang={lang}
       stats={{
+        publishedCars,
         totalCars,
-        totalBookings,
-        revenue,
-        totalCustomers,
+        pendingRequests,
+        confirmedBookings,
+        ongoingRentals,
+        collected: Number(collected._sum.amount ?? 0),
+        estimated: Number(estimated._sum.totalPrice ?? 0),
       }}
+      monthly={monthly}
+      monthCount={TREND_MONTHS}
       statusCounts={statusCounts}
-      recentBookings={recentBookings.map((b) => ({
-        id: b.id,
-        customerName: b.customerName,
-        carName: b.car ? (b.car.name || `${b.car.brand} ${b.car.model}`) : "-",
-        pickupAt: b.pickupAt,
-        returnAt: b.returnAt,
-        status: b.status,
-        totalPrice: Number(b.totalPrice),
-        publicRef: b.publicRef,
-      }))}
+      totalBookings={statusCounts.reduce((sum, row) => sum + row.count, 0)}
+      upcoming={upcoming.map(mapBooking)}
+      recentBookings={recentBookings.map(mapBooking)}
     />
   );
 }

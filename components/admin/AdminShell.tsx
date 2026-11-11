@@ -7,27 +7,26 @@ import {
   BarChart3,
   Car,
   ChevronDown,
-  ChevronRight,
   LogOut,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
-  Plus,
   Settings,
   Users,
   UserCog,
   Wrench,
   CalendarDays,
-  Bell,
   X,
   LayoutDashboard,
+  Globe,
+  MapPin,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import AdminLanguageSwitcher from "./LanguageSwitcher";
 import NotificationsBell from "./NotificationsBell";
 import GlobalSearch from "./GlobalSearch";
 import Dropdown, { DropdownItem } from "./ui/dropdown";
-import { QUICK_ACTIONS } from "./nav";
 import { can, modulesFor } from "@/lib/access";
 import { getDict, type Locale } from "@/i18n";
 import type { UserRole } from "@prisma/client";
@@ -36,6 +35,18 @@ import { cn } from "./ui/utils";
 type ShellUser = { name: string; email: string; role: UserRole };
 
 const COLLAPSE_KEY = "atlas-admin-sidebar-collapsed";
+
+/** Sidebar entries; each key resolves to `adminLayout.nav` in the visitor's language. */
+type NavKey =
+  | "dashboard"
+  | "fleet"
+  | "reservations"
+  | "maintenance"
+  | "customers"
+  | "locations"
+  | "staff"
+  | "reports"
+  | "settings";
 
 function initials(name: string): string {
   return name
@@ -46,15 +57,16 @@ function initials(name: string): string {
     .join("");
 }
 
-const ATLAS_NAV = [
-  { key: "dashboard", href: "/admin", icon: LayoutDashboard, label: "Tableau de bord" },
-  { key: "fleet", href: "/admin/cars", icon: Car, label: "Voitures" },
-  { key: "reservations", href: "/admin/bookings", icon: CalendarDays, label: "Réservations" },
-  { key: "maintenance", href: "/admin/maintenance", icon: Wrench, label: "Maintenance" },
-  { key: "customers", href: "/admin/customers", icon: Users, label: "Clients" },
-  { key: "staff", href: "/admin/staff", icon: UserCog, label: "Utilisateurs" },
-  { key: "reports", href: "/admin/reports", icon: BarChart3, label: "Rapports" },
-  { key: "settings", href: "/admin/settings", icon: Settings, label: "Paramètres" },
+const ATLAS_NAV: { key: NavKey; href: string; icon: LucideIcon }[] = [
+  { key: "dashboard", href: "/admin", icon: LayoutDashboard },
+  { key: "fleet", href: "/admin/cars", icon: Car },
+  { key: "reservations", href: "/admin/bookings", icon: CalendarDays },
+  { key: "maintenance", href: "/admin/maintenance", icon: Wrench },
+  { key: "customers", href: "/admin/customers", icon: Users },
+  { key: "locations", href: "/admin/locations", icon: MapPin },
+  { key: "staff", href: "/admin/staff", icon: UserCog },
+  { key: "reports", href: "/admin/reports", icon: BarChart3 },
+  { key: "settings", href: "/admin/settings", icon: Settings },
 ];
 
 /** Breadcrumb trail derived from the current pathname. */
@@ -73,7 +85,7 @@ function useBreadcrumbs(lang: Locale, pathname: string) {
     const item = ATLAS_NAV.find(
       (i) => i.href === `/admin/${seg}`
     );
-    if (item) return item.label;
+    if (item) return t.nav[item.key];
     return null;
   };
 
@@ -149,18 +161,18 @@ export default function AdminShell({
   }
 
   const sidebarNav = (
-    <nav className="flex-1 overflow-y-auto px-3 pb-4 pt-2" aria-label="Navigation">
+    <nav className="flex-1 overflow-y-auto px-3 pb-4 pt-2" aria-label={t.sidebar.navLabel}>
       <ul className="space-y-1">
-        {ATLAS_NAV.map((item) => {
+        {ATLAS_NAV.filter((item) => allowed.includes(item.key)).map((item) => {
           const active = isActive(item.href);
           const Icon = item.icon;
-          // Only show items user has access to where applicable - keep all for now to match spec
+          const label = t.nav[item.key];
           return (
             <li key={item.key}>
               <Link
                 href={`/${lang}${item.href}`}
                 aria-current={active ? "page" : undefined}
-                title={collapsed ? item.label : undefined}
+                title={collapsed ? label : undefined}
                 className={cn(
                   "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
                   collapsed && "justify-center px-2 py-2.5",
@@ -176,7 +188,7 @@ export default function AdminShell({
                   )}
                   aria-hidden
                 />
-                {!collapsed ? <span className="truncate">{item.label}</span> : null}
+                {!collapsed ? <span className="truncate">{label}</span> : null}
               </Link>
             </li>
           );
@@ -203,24 +215,17 @@ export default function AdminShell({
         </div>
       </div>
       {sidebarNav}
-      {!collapsed && (
-        <div className="mx-3 mb-4 mt-auto">
-          <div className="relative overflow-hidden rounded-lg border border-white/10">
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent" />
-            <img 
-              src="https://images.unsplash.com/photo-1555353540-64580b51c258?q=80&w=800&auto=format&fit=crop" 
-              alt="Luxury SUV"
-              className="h-32 w-full object-cover"
-            />
-            <div className="absolute bottom-2 left-2 right-2">
-              <p className="text-[10px] leading-tight text-[#e5b94f] font-medium">
-                Des voitures d'exception<br/>pour vos plus beaux trajets
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
       <div className="border-t border-white/5 px-3 py-2">
+        <Link
+          href={`/${lang}`}
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/60 transition-colors hover:bg-admin-surface/5 hover:text-white",
+            collapsed && "justify-center px-2"
+          )}
+        >
+          <Globe className="h-4 w-4 shrink-0" aria-hidden />
+          {!collapsed ? <span className="truncate">{t.backToSite}</span> : null}
+        </Link>
         <button
           type="button"
           onClick={toggleCollapsed}
@@ -244,15 +249,9 @@ export default function AdminShell({
   );
 
   const getPageTitle = () => {
-    if (pathname === `/${lang}/admin` || pathname === `/${lang}/admin/`) return "Tableau de bord";
-    if (pathname.includes("/admin/cars")) return "Gestion des voitures";
-    if (pathname.includes("/admin/bookings")) return "Réservations";
-    if (pathname.includes("/admin/maintenance")) return "Maintenance";
-    if (pathname.includes("/admin/customers")) return "Clients";
-    if (pathname.includes("/admin/staff")) return "Utilisateurs";
-    if (pathname.includes("/admin/reports")) return "Rapports";
-    if (pathname.includes("/admin/settings")) return "Paramètres";
-    return breadcrumbs[breadcrumbs.length - 1]?.label || "Tableau de bord";
+    const entry = ATLAS_NAV.find((item) => isActive(item.href));
+    if (entry && allowed.includes(entry.key)) return t.nav[entry.key];
+    return breadcrumbs[breadcrumbs.length - 1]?.label ?? t.nav.dashboard;
   };
 
   return (
@@ -321,23 +320,47 @@ export default function AdminShell({
 
             <div className="flex-1" />
 
-            <button className="relative inline-flex h-8 w-8 items-center justify-center rounded-md text-white/60 transition-colors hover:bg-admin-surface/5 hover:text-white">
-              <Bell className="h-4 w-4" aria-hidden />
-              {unread > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[#fa655e]" />
-              )}
-            </button>
-
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#1a2332] to-[#0d141e] text-xs font-semibold text-[#e5b94f] ring-1 ring-[#e5b94f]/40">
-                {initials(user.name)}
-              </div>
-              <div className="hidden sm:flex flex-col leading-tight">
-                <span className="text-xs font-medium text-[#f4f5f7]">{user.name || "Admin"}</span>
-                <span className="text-[10px] text-[#8190a1]">{t.roles[user.role] || "Administrateur"}</span>
-              </div>
-              <ChevronDown className="h-3 w-3 text-[#8190a1]" />
+            <div className="hidden w-56 xl:block">
+              <GlobalSearch lang={lang} />
             </div>
+
+            <AdminLanguageSwitcher lang={lang} />
+
+            <NotificationsBell lang={lang} initialUnread={unread} />
+
+            <Dropdown
+              label={t.profile.label}
+              trigger={({ onClick, ...attrs }) => (
+                <button
+                  type="button"
+                  aria-label={t.profile.label}
+                  onClick={onClick}
+                  {...attrs}
+                  className="flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-admin-surface/5"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#1a2332] to-[#0d141e] text-xs font-semibold text-[#e5b94f] ring-1 ring-[#e5b94f]/40">
+                    {initials(user.name)}
+                  </span>
+                  <span className="hidden flex-col leading-tight sm:flex">
+                    <span className="text-xs font-medium text-[#f4f5f7]">{user.name}</span>
+                    <span className="text-[10px] text-[#8190a1]">{t.roles[user.role]}</span>
+                  </span>
+                  <ChevronDown className="h-3 w-3 text-[#8190a1]" aria-hidden />
+                </button>
+              )}
+            >
+              {(close) => (
+                <DropdownItem
+                  icon={LogOut}
+                  onClick={() => {
+                    close();
+                    logout();
+                  }}
+                >
+                  {t.profile.logout}
+                </DropdownItem>
+              )}
+            </Dropdown>
           </div>
         </header>
 

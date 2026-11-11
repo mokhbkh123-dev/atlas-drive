@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { Languages } from "lucide-react";
 
 import Dropdown, { DropdownItem } from "@/components/admin/ui/dropdown";
@@ -12,13 +12,28 @@ function persistLocale(locale: Locale) {
   document.cookie = `NEXT_LOCALE=${locale};path=/;max-age=31536000`;
 }
 
-/** Admin topbar language switcher — preserves the current page (spec §20). */
+/** Admin topbar language switcher — preserves the current page and filters (spec §20). */
 export default function AdminLanguageSwitcher({ lang }: { lang: Locale }) {
+  return (
+    <Suspense fallback={<AdminSwitcher lang={lang} query="" />}>
+      <QueryAwareAdminSwitcher lang={lang} />
+    </Suspense>
+  );
+}
+
+function QueryAwareAdminSwitcher({ lang }: { lang: Locale }) {
+  const searchParams = useSearchParams();
+  const serialized = searchParams?.toString() ?? "";
+  return <AdminSwitcher lang={lang} query={serialized ? `?${serialized}` : ""} />;
+}
+
+function AdminSwitcher({ lang, query }: { lang: Locale; query: string }) {
   const pathname = usePathname();
   const dict = getDict(lang);
 
   // Current path without the /xx locale prefix.
   const pathWithoutLocale = pathname.replace(/^\/(fr|en|ar)(?=\/|$)/, "") || "/";
+  const base = pathWithoutLocale === "/" ? "" : pathWithoutLocale;
 
   return (
     <Dropdown
@@ -40,7 +55,7 @@ export default function AdminLanguageSwitcher({ lang }: { lang: Locale }) {
           {locales.map((locale) => (
             <DropdownItem
               key={locale}
-              href={`/${locale}${pathWithoutLocale === "/" ? "" : pathWithoutLocale}`}
+              href={`/${locale}${base}${query}`}
               onClick={() => {
                 persistLocale(locale);
                 close();

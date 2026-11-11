@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { apiAuth } from "@/lib/rbac";
-import { generateRef } from "@/lib/utils";
+import { generateRef } from "@/lib/booking-ref";
 import { calculateRentalDuration, MIN_RENTAL_DAYS } from "@/lib/booking-pricing";
+import { findPeriodConflict, RESERVED_BOOKING_STATUSES } from "@/lib/booking-availability";
 import type { BookingSource, BookingStatus } from "@prisma/client";
-
-const BLOCKING_STATUSES = ["PENDING", "CONFIRMED", "READY_FOR_PICKUP", "IN_PROGRESS"];
 
 export async function POST(req: NextRequest) {
   const auth = await apiAuth("reservations");
@@ -82,23 +81,22 @@ export async function POST(req: NextRequest) {
       if (!carRecord) {
         throw new Error("CAR_NOT_FOUND");
       }
-      if ((carRecord as any).operationalStatus === "MAINTENANCE" || carRecord.status === "ARCHIVED") {
+      if (carRecord.operationalStatus === "MAINTENANCE" || carRecord.status === "ARCHIVED") {
         throw new Error("VEHICLE_UNAVAILABLE");
       }
 
-      const overlapping = await tx.booking.findFirst({
-        where: {
-          carId,
-          status: { in: BLOCKING_STATUSES as any },
-          OR: [{ pickupAt: { lte: ret }, returnAt: { gt: pickup } }],
-        },
+      const conflict = await findPeriodConflict(tx, {
+        carId,
+        pickupAt: pickup,
+        returnAt: ret,
+        bookingStatuses: RESERVED_BOOKING_STATUSES,
       });
 
-      if (overlapping) {
-        throw new Error("BOOKING_CONFLICT");
+      if (conflict) {
+        throw new Error(conflict);
       }
 
-      const daily = dailyPrice !== undefined && dailyPrice !== null ? Number(dailyPrice) : Number((carRecord as any).dailyPrice);
+      const daily = dailyPrice !== undefined && dailyPrice !== null ? Number(dailyPrice) : Number(carRecord.dailyPrice);
       const extras = Number(extrasTotal || 0);
       const disc = Number(discount || 0);
       const dep = Number(deposit || 0);
@@ -150,6 +148,9 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     if (error?.message === "BOOKING_CONFLICT") {
       return NextResponse.json({ code: "BOOKING_CONFLICT", error: "Conflit de réservation - ce véhicule est déjà réservé sur cette période" }, { status: 400 });
+    }
+    if (error?.message === "MAINTENANCE_CONFLICT") {
+      return NextResponse.json({ code: "MAINTENANCE_CONFLICT", error: "Ce véhicule est en maintenance sur cette période" }, { status: 400 });
     }
     if (error?.message === "VEHICLE_UNAVAILABLE") {
       return NextResponse.json({ code: "VEHICLE_UNAVAILABLE", error: "Véhicule indisponible (en maintenance ou archivé)" }, { status: 400 });

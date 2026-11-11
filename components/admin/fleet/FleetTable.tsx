@@ -21,7 +21,7 @@ import {
   buttonClass,
   type Column,
 } from "@/components/admin/ui";
-import { getDict, tEnum, type Locale } from "@/i18n";
+import { getDict, canonicalEnum, tEnum, type Locale } from "@/i18n";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 import { downloadCsv } from "./csv";
@@ -32,10 +32,16 @@ import {
 } from "./helpers";
 import type { FleetLocationOption, FleetRow } from "./types";
 
-const STATUS_VALUES = ["DRAFT", "PUBLISHED", "ARCHIVED"] as const;
-const CATEGORY_VALUES = ["Sport", "SUV", "Berline", "Supercar"] as const;
-const TRANSMISSION_VALUES = ["Automatique", "Manuelle"] as const;
-const FUEL_VALUES = ["Essence", "Diesel", "Hybride", "Électrique"] as const;
+type EnumGroup = "category" | "transmission" | "fuel" | "carStatus";
+
+const enumValueOf = (row: FleetRow, group: EnumGroup): string =>
+  group === "category"
+    ? row.category
+    : group === "transmission"
+      ? row.transmission
+      : group === "fuel"
+        ? row.fuelType
+        : row.status;
 
 function FilterSelect({
   label,
@@ -105,10 +111,10 @@ export default function FleetTable({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter((row) => {
-      if (status && row.status !== status) return false;
-      if (category && row.category !== category) return false;
-      if (transmission && row.transmission !== transmission) return false;
-      if (fuel && row.fuelType !== fuel) return false;
+      if (status && canonicalEnum("carStatus", enumValueOf(row, "carStatus")) !== status) return false;
+      if (category && canonicalEnum("category", enumValueOf(row, "category")) !== category) return false;
+      if (transmission && canonicalEnum("transmission", enumValueOf(row, "transmission")) !== transmission) return false;
+      if (fuel && canonicalEnum("fuel", enumValueOf(row, "fuel")) !== fuel) return false;
       if (location && row.locationId !== location) return false;
       if (q) {
         const haystack =
@@ -118,6 +124,13 @@ export default function FleetTable({
       return true;
     });
   }, [rows, query, status, category, transmission, fuel, location]);
+
+  // These columns are free text, so `Diesel` and `DIESEL` are one value and an
+  // option is only offered when the fleet really holds it.
+  const optionsFor = (group: EnumGroup) =>
+    [...new Set(rows.map((row) => canonicalEnum(group, enumValueOf(row, group))))]
+      .filter((value) => value !== "")
+      .sort((a, b) => a.localeCompare(b, lang));
 
   function exportCsv() {
     const headers = Object.values(t.csv.headers);
@@ -324,7 +337,7 @@ export default function FleetTable({
         onChange={setStatus}
       >
         <option value="">{t.filters.allStatuses}</option>
-        {STATUS_VALUES.map((value) => (
+        {optionsFor("carStatus").map((value) => (
           <option key={value} value={value}>
             {tEnum(dict, "carStatus", value)}
           </option>
@@ -337,7 +350,7 @@ export default function FleetTable({
         onChange={setCategory}
       >
         <option value="">{t.filters.allCategories}</option>
-        {CATEGORY_VALUES.map((value) => (
+        {optionsFor("category").map((value) => (
           <option key={value} value={value}>
             {tEnum(dict, "category", value)}
           </option>
@@ -350,7 +363,7 @@ export default function FleetTable({
         onChange={setTransmission}
       >
         <option value="">{t.filters.allTransmissions}</option>
-        {TRANSMISSION_VALUES.map((value) => (
+        {optionsFor("transmission").map((value) => (
           <option key={value} value={value}>
             {tEnum(dict, "transmission", value)}
           </option>
@@ -363,7 +376,7 @@ export default function FleetTable({
         onChange={setFuel}
       >
         <option value="">{t.filters.allFuels}</option>
-        {FUEL_VALUES.map((value) => (
+        {optionsFor("fuel").map((value) => (
           <option key={value} value={value}>
             {tEnum(dict, "fuel", value)}
           </option>

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { BookingStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { apiAuth } from "@/lib/rbac";
-
-const BLOCKING_STATUSES = ["PENDING", "CONFIRMED", "READY_FOR_PICKUP", "IN_PROGRESS"];
+import { findPeriodConflict, RESERVED_BOOKING_STATUSES } from "@/lib/booking-availability";
 
 export async function PATCH(
   req: NextRequest,
@@ -34,32 +34,12 @@ export async function PATCH(
       );
     }
 
-    // If confirming, check for overlaps against blocking statuses
-    if (status === "CONFIRMED" && booking.status !== "CONFIRMED") {
-      const overlapping = await prisma.booking.findFirst({
-        where: {
-          carId: booking.carId,
-          id: { not: booking.id },
-          status: { in: BLOCKING_STATUSES as any },
-          OR: [
-            {
-              pickupAt: { lte: booking.returnAt },
-              returnAt: { gt: booking.pickupAt },
-            },
-          ],
-        },
-      });
+    // Confirming hands the vehicle to a customer, so the period must be free of
+    // both other bookings and maintenance work.
+    const confirming = status === "CONFIRMED" && booking.status !== "CONFIRMED";
 
-      if (overlapping) {
-        return NextResponse.json(
-          { error: "Conflit de réservation - ce véhicule est déjà réservé sur cette période", code: "BOOKING_CONFLICT" },
-          { status: 400 }
-        );
-      }
-    }
-
-    const updateData: any = { status };
-    if (status === "CONFIRMED" && booking.status !== "CONFIRMED" && !booking.confirmedById) {
+    const updateData: Prisma.BookingUncheckedUpdateInput = { status: status as BookingStatus };
+    if (confirming && !booking.confirmedById) {
       updateData.confirmedById = auth.user.id;
     }
     if (status === "IN_PROGRESS" && !booking.pickedUpAt) {
@@ -75,13 +55,36 @@ export async function PATCH(
       }
     }
 
-    const updated = await prisma.booking.update({
-      where: { id },
-      data: updateData,
+    const updated = await prisma.$transaction(async (tx) => {
+      if (confirming) {
+        const conflict = await findPeriodConflict(tx, {
+          carId: booking.carId,
+          pickupAt: booking.pickupAt,
+          returnAt: booking.returnAt,
+          bookingStatuses: RESERVED_BOOKING_STATUSES,
+          ignoreBookingId: booking.id,
+        });
+
+        if (conflict) throw new Error(conflict);
+      }
+
+      return tx.booking.update({ where: { id }, data: updateData });
     });
 
     return NextResponse.json({ success: true, booking: updated });
   } catch (error) {
+    if (error instanceof Error && error.message === "BOOKING_CONFLICT") {
+      return NextResponse.json(
+        { error: "Conflit de réservation - ce véhicule est déjà réservé sur cette période", code: "BOOKING_CONFLICT" },
+        { status: 400 }
+      );
+    }
+    if (error instanceof Error && error.message === "MAINTENANCE_CONFLICT") {
+      return NextResponse.json(
+        { error: "Ce véhicule est en maintenance sur cette période", code: "MAINTENANCE_CONFLICT" },
+        { status: 400 }
+      );
+    }
     console.error("Update booking error:", error);
     return NextResponse.json({ error: "Erreur serveur", code: "SERVER_ERROR" }, { status: 500 });
   }

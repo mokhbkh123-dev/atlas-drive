@@ -70,7 +70,7 @@ export default async function LoginPage({
           </p>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/95 p-6 shadow-[0_40px_120px_-60px_rgba(201,169,97,0.5)] backdrop-blur">
+        <div className="rounded-2xl border border-admin-line bg-admin-surface-elevated/95 p-6 shadow-[0_40px_120px_-60px_rgba(201,169,97,0.5)] backdrop-blur">
           <h2 className="mb-1 text-lg font-semibold text-admin-ink">
             {dict.auth.title}
           </h2>

@@ -108,7 +108,7 @@ export default function LoginForm({
       </div>
 
       {error ? (
-        <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-[#b91c1c]">
+        <p role="alert" className="rounded-lg border border-admin-danger/30 bg-admin-danger/10 px-3 py-2 text-sm font-medium text-admin-danger">
           {error}
         </p>
       ) : null}

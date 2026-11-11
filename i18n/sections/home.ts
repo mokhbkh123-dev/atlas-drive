@@ -27,9 +27,23 @@ const fr = {
   },
 
   fleetEyebrow: "Notre Flotte",
-  fleetTitle: "Véhicules à louer",
+  fleetTitle: "Toute notre flotte",
+  fleetText: "Explorez notre large gamme de véhicules et trouvez la voiture parfaite pour votre trajet.",
   fleetSeeAll: "Voir tous",
   pricePerDay: "{price}/jour",
+
+  trustChips: [
+    { title: "Large gamme de véhicules", desc: "Citadines, SUV et premium" },
+    { title: "Assistance 24h/24", desc: "Sur tout le territoire" },
+    { title: "Réservation simple et sûre", desc: "Demande confirmée par l'agence" },
+    { title: "Prise en charge aéroport & hôtel", desc: "Livraison sur demande" },
+  ],
+
+  destinationsEyebrow: "Explorez les plus belles destinations du Maroc",
+  destinationsTitle: "Du désert à l'océan Atlantique, chaque route raconte une histoire.",
+  destinationsText:
+    "Nos agences et nos véhicules vous suivent à Marrakech, Agadir, Fès, Tanger et dans le désert.",
+  destinationsCta: "Voir les destinations",
 
   advantagesEyebrow: "Avantages",
   advantagesTitle: "Pourquoi choisir Atlas Drive",
@@ -79,9 +93,24 @@ export const home: Record<Locale, typeof fr> = {
     },
 
     fleetEyebrow: "Our Fleet",
-    fleetTitle: "Cars for rent",
+    fleetTitle: "Our Entire Fleet",
+    fleetText:
+      "Explore our wide range of vehicles and find the perfect car for your journey.",
     fleetSeeAll: "See all",
     pricePerDay: "{price}/day",
+
+    trustChips: [
+      { title: "Wide range of vehicles", desc: "City cars, SUVs and premium" },
+      { title: "24/7 assistance", desc: "Anywhere in the country" },
+      { title: "Easy & secure booking", desc: "Request confirmed by the agency" },
+      { title: "Airport & hotel pick-up", desc: "Delivery on request" },
+    ],
+
+    destinationsEyebrow: "Explore Morocco's Most Beautiful Destinations",
+    destinationsTitle: "From the Sahara to the Atlantic coast, every road tells a story.",
+    destinationsText:
+      "Our offices and our vehicles follow you to Marrakech, Agadir, Fès, Tanger and into the desert.",
+    destinationsCta: "Discover our destinations",
 
     advantagesEyebrow: "Advantages",
     advantagesTitle: "Why choose Atlas Drive",
@@ -124,9 +153,23 @@ export const home: Record<Locale, typeof fr> = {
     },
 
     fleetEyebrow: "أسطولنا",
-    fleetTitle: "سيارات للإيجار",
+    fleetTitle: "كل أسطولنا",
+    fleetText: "استكشفوا تشكيلتنا الواسعة من السيارات واعثروا على السيارة المثالية لرحلتكم.",
     fleetSeeAll: "عرض الكل",
     pricePerDay: "{price}/اليوم",
+
+    trustChips: [
+      { title: "تشكيلة واسعة من السيارات", desc: "سيارات مدينة وSUV وفاخرة" },
+      { title: "دعم على مدار الساعة", desc: "في جميع أنحاء البلاد" },
+      { title: "حجز سهل وآمن", desc: "طلب مؤكد من الوكالة" },
+      { title: "استلام من المطار والفندق", desc: "توصيل عند الطلب" },
+    ],
+
+    destinationsEyebrow: "اكتشفوا أجمل وجهات المغرب",
+    destinationsTitle: "من الصحراء إلى ساحل الأطلسي، كل طريق يروي قصة.",
+    destinationsText:
+      "مكاتبنا وسياراتنا ترافقكم إلى مراكش وأكادير وفاس وطنجة والصحراء.",
+    destinationsCta: "اكتشف الوجهات",
 
     advantagesEyebrow: "المزايا",
     advantagesTitle: "لماذا تختار ATLAS DRIVE",

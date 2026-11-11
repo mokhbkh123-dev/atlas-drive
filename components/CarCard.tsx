@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowUpRight, CarFront } from "lucide-react";
+import { CarFront, Fuel, Gauge, Users } from "lucide-react";
 
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, withSearchContext, type SearchContext } from "@/lib/utils";
+import { categoryBadgeColor } from "@/lib/category-styles";
 import { getDict, tEnum, type Locale } from "@/i18n";
 
 export type CarCardData = {
@@ -19,24 +20,34 @@ export type CarCardData = {
   imageAlt: string | null;
 };
 
+/** Fleet card used on the home page and the cars listing (cream theme). */
 export default function CarCard({
   car,
   lang,
   eager = false,
+  searchContext,
 }: {
   car: CarCardData;
   lang: Locale;
   eager?: boolean;
+  searchContext?: SearchContext;
 }) {
   const dict = getDict(lang);
   const label = car.name || `${car.brand} ${car.model}`;
+  const detailHref = withSearchContext(`/${lang}/cars/${car.slug}`, searchContext ?? {});
+
+  const specs = [
+    { icon: Users, text: dict.cars.seatsCount.replace("{seats}", String(car.seats)) },
+    { icon: Gauge, text: tEnum(dict, "transmission", car.transmission) },
+    { icon: Fuel, text: tEnum(dict, "fuel", car.fuelType) },
+  ];
 
   return (
-    <article className="group card-luxe flex h-full flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-gold/45 hover:shadow-[0_32px_70px_-40px_rgba(201,169,97,0.35)]">
+    <article className="card-site card-hover group flex h-full flex-col overflow-hidden">
       <Link
-        href={`/${lang}/cars/${car.slug}`}
+        href={detailHref}
         aria-label={`${label} — ${dict.cars.details}`}
-        className="relative block aspect-[4/3] w-full overflow-hidden bg-[#101010]"
+        className="relative block aspect-[16/10] w-full overflow-hidden bg-cream-2"
       >
         {car.imageUrl ? (
           <img
@@ -48,66 +59,49 @@ export default function CarCard({
           />
         ) : (
           <span className="flex h-full w-full items-center justify-center">
-            <CarFront className="h-12 w-12 text-white/15" aria-hidden />
+            <CarFront className="h-12 w-12 text-line-strong" aria-hidden />
           </span>
         )}
         <span
-          aria-hidden
-          className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/5 to-transparent"
-        />
-        <span className="absolute start-4 top-4 rounded-full border border-white/15 bg-black/55 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-gold backdrop-blur">
+          className="badge-category absolute start-3 top-3"
+          style={{ backgroundColor: categoryBadgeColor(car.category) }}
+        >
           {tEnum(dict, "category", car.category)}
         </span>
       </Link>
 
-      <div className="flex flex-1 flex-col p-5 sm:p-6">
-        <h3 className="text-xl font-semibold leading-snug tracking-tight text-ivory">
-          <Link
-            href={`/${lang}/cars/${car.slug}`}
-            className="transition-colors hover:text-gold-soft"
-          >
+      <div className="flex flex-1 flex-col p-5">
+        <h3 className="text-base font-semibold tracking-tight text-ink">
+          <Link href={detailHref} className="transition-colors hover:text-bronze-dark">
             {label}
           </Link>
         </h3>
 
-        <p className="mt-2 text-xs leading-5 text-white/45">
-          {tEnum(dict, "transmission", car.transmission)}
-          <span aria-hidden className="mx-2 text-gold/50">•</span>
-          {tEnum(dict, "fuel", car.fuelType)}
-          <span aria-hidden className="mx-2 text-gold/50">•</span>
-          {dict.cars.seatsCount.replace("{seats}", String(car.seats))}
-        </p>
+        <ul className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted">
+          {specs.map((spec) => (
+            <li key={spec.text} className="flex items-center gap-1.5">
+              <spec.icon className="h-3.5 w-3.5 text-bronze" aria-hidden />
+              <span>{spec.text}</span>
+            </li>
+          ))}
+        </ul>
 
-        <div className="mt-auto pt-5">
-          <div className="flex items-end justify-between gap-3 border-t border-white/10 pt-4">
-            <p className="min-w-0">
-              <span className="text-xl font-bold text-gold sm:text-2xl">
-                {formatCurrency(Number(car.dailyPrice), lang)}
-              </span>
-              <span className="ms-1 text-[10px] uppercase tracking-[0.12em] text-white/40">
-                {dict.cars.perDay}
-              </span>
-            </p>
-            <Link
-              href={`/${lang}/cars/${car.slug}`}
-              className="inline-flex min-h-8 shrink-0 items-center gap-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white/60 transition-colors hover:text-gold"
-            >
-              {dict.cars.details}
-              <ArrowUpRight className="h-3.5 w-3.5 rtl:-scale-x-100" aria-hidden />
-            </Link>
-          </div>
+        <div className="mt-auto border-t border-line pt-4">
+          <p className="mt-1 flex items-baseline gap-1">
+            <span className="text-xl font-bold text-ink">
+              {formatCurrency(Number(car.dailyPrice), lang)}
+            </span>
+            <span className="text-xs text-muted">{dict.cars.perDay}</span>
+          </p>
 
           <div className="mt-4 grid grid-cols-2 gap-2">
             <Link
-              href={`/${lang}/booking?carId=${car.id}`}
-              className="btn-gold !min-h-11 !px-2 !text-[10px]"
+              href={withSearchContext(`/${lang}/booking?carId=${car.id}`, searchContext ?? {})}
+              className="btn-dark !min-h-10 !px-3 !text-xs"
             >
               {dict.booking.ctaBookNow || dict.cars.bookCta}
             </Link>
-            <Link
-              href={`/${lang}/cars/${car.slug}`}
-              className="btn-ghost !min-h-11 !px-2 !text-[10px]"
-            >
+            <Link href={detailHref} className="btn-outline-dark !min-h-10 !px-3 !text-xs">
               {dict.cars.details}
             </Link>
           </div>

@@ -17,11 +17,13 @@ import { footer } from "./sections/footer";
 import { meta } from "./sections/meta";
 import { navbar } from "./sections/navbar";
 import { home } from "./sections/home";
+import { destinations } from "./sections/destinations";
 import { gallery } from "./sections/gallery";
 import { services } from "./sections/services";
 import { about } from "./sections/about";
 import { contact } from "./sections/contact";
 import { cars } from "./sections/cars";
+import { search } from "./sections/search";
 import { booking } from "./sections/booking";
 import { faq } from "./sections/faq";
 import { terms } from "./sections/terms";
@@ -67,11 +69,13 @@ const sections = {
   meta,
   navbar,
   home,
+  destinations,
   gallery,
   services,
   about,
   contact,
   cars,
+  search,
   booking,
   faq,
   terms,
@@ -136,6 +140,59 @@ export async function resolveLocale(
 }
 
 /**
+ * `Car.category`, `Car.transmission` and `Car.fuelType` are free-text columns,
+ * so the admin has accumulated several spellings of the same concept
+ * (`MANUAL` vs `Manuelle`, `DIESEL` vs `Diesel`). Every key here is the
+ * lowercased, accent-stripped form of a raw value; the target is the canonical
+ * key used by the `enums` dictionaries.
+ */
+const ENUM_ALIASES: Partial<Record<keyof Dictionary["enums"], Record<string, string>>> = {
+  category: {
+    sport: "Sport",
+    suv: "SUV",
+    "4x4": "SUV",
+    berline: "Berline",
+    sedan: "Berline",
+    supercar: "Supercar",
+    utility: "Utility",
+    utilitaire: "Utility",
+    van: "Utility",
+  },
+  transmission: {
+    automatique: "Automatique",
+    auto: "Automatique",
+    manuelle: "Manuelle",
+    manual: "Manuelle",
+    manuel: "Manuelle",
+  },
+  fuel: {
+    essence: "Essence",
+    petrol: "Essence",
+    gasoline: "Essence",
+    diesel: "Diesel",
+    hybride: "Hybride",
+    hybrid: "Hybride",
+    electrique: "Électrique",
+  },
+};
+
+function enumLookupKey(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+/** Map a raw database value onto its canonical enum key; unknown values pass through. */
+export function canonicalEnum(
+  group: keyof Dictionary["enums"],
+  value: string
+): string {
+  return ENUM_ALIASES[group]?.[enumLookupKey(value)] ?? value;
+}
+
+/**
  * Translate a database value (category, transmission, fuel, statuses).
  * Unknown values fall through unchanged.
  */
@@ -145,5 +202,46 @@ export function tEnum(
   value: string
 ): string {
   const map = dict.enums[group] as Record<string, string | undefined>;
-  return map[value] ?? value;
+  return map[canonicalEnum(group, value)] ?? value;
+}
+
+// Pickup cities travel in the URL as a destination slug so the value survives a
+// language change; every locale's own spelling is registered as an alias so
+// links written before that still resolve.
+const CITY_ALIASES = new Map<string, string>();
+for (const section of Object.values(destinations)) {
+  for (const item of section.items) {
+    CITY_ALIASES.set(enumLookupKey(item.slug), item.slug);
+    CITY_ALIASES.set(enumLookupKey(item.name), item.slug);
+  }
+}
+
+/** Localized spelling of a `?city=` value; unknown places pass through. */
+export function cityName(dict: Dictionary, value: string): string {
+  const slug = CITY_ALIASES.get(enumLookupKey(value));
+  if (!slug) return value;
+  return dict.destinations.items.find((item) => item.slug === slug)?.name ?? value;
+}
+
+/** Canonical `?city=` value, so links written with a translated name still match the select. */
+export function citySlug(value: string): string {
+  return CITY_ALIASES.get(enumLookupKey(value)) ?? value;
+}
+
+/**
+ * `?city=` from a link. A served destination becomes its canonical slug so the
+ * select and the localized label resolve; any other place is kept as plain text
+ * because the agency picks up outside the destinations pages too. Markup and
+ * control characters are stripped, so a hand-written value cannot render as
+ * chrome or as an endless string.
+ */
+export function cityParam(value?: string): string | undefined {
+  if (!value) return undefined;
+  const cleaned = value
+    .replace(/[\u0000-\u001f\u007f<>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 40);
+  if (!cleaned) return undefined;
+  return CITY_ALIASES.get(enumLookupKey(cleaned)) ?? cleaned;
 }

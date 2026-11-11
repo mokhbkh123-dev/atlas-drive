@@ -2,7 +2,8 @@ import type { Locale } from "../config";
 
 const fr = {
   home: "Accueil",
-  cars: "Véhicules",
+  cars: "Voitures",
+  destinations: "Destinations",
   gallery: "Galerie",
   services: "Services",
   about: "À propos",
@@ -10,6 +11,7 @@ const fr = {
   book: "Réserver",
   menu: "Menu",
   close: "Fermer",
+  logoTagline: "Explorez le Maroc",
 };
 
 /**
@@ -20,7 +22,8 @@ export const navbar: Record<Locale, typeof fr> = {
   fr,
   en: {
     home: "Home",
-    cars: "Vehicles",
+    cars: "Cars",
+    destinations: "Destinations",
     gallery: "Gallery",
     services: "Services",
     about: "About",
@@ -28,10 +31,12 @@ export const navbar: Record<Locale, typeof fr> = {
     book: "Book now",
     menu: "Menu",
     close: "Close",
+    logoTagline: "Explore Morocco",
   },
   ar: {
     home: "الرئيسية",
     cars: "السيارات",
+    destinations: "الوجهات",
     gallery: "معرض الصور",
     services: "الخدمات",
     about: "من نحن",
@@ -39,5 +44,6 @@ export const navbar: Record<Locale, typeof fr> = {
     book: "احجز الآن",
     menu: "القائمة",
     close: "إغلاق",
+    logoTagline: "اكتشف المغرب",
   },
 };

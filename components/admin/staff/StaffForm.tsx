@@ -13,6 +13,7 @@ export default function StaffForm({ lang }: { lang: Locale }) {
   const router = useRouter();
   const { toast } = useToast();
   const dict = getDict(lang);
+  const t = dict.staff;
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -33,13 +34,14 @@ export default function StaffForm({ lang }: { lang: Locale }) {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Error");
+        // The API answers with a stable code, never with a raw sentence.
+        throw new Error(t.errors[data.code as keyof typeof t.errors] ?? data.code ?? "Error");
       }
-      toast("Utilisateur créé avec succès");
+      toast(t.messages.created);
       router.push(`/${lang}/admin/staff`);
       router.refresh();
     } catch (err: any) {
-      toast(err.message || "Erreur lors de la création");
+      toast(err.message || t.errors.MISSING_FIELDS);
     } finally {
       setLoading(false);
     }
@@ -49,10 +51,10 @@ export default function StaffForm({ lang }: { lang: Locale }) {
     <form onSubmit={onSubmit}>
       <Card>
         <CardHeader>
-          <CardTitle>Informations de l'utilisateur</CardTitle>
+          <CardTitle>{t.form.cardTitle}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          <Field htmlFor="staff-name" label="Nom complet">
+          <Field htmlFor="staff-name" label={t.form.name}>
             <Input
               id="staff-name"
               value={form.name}
@@ -60,7 +62,7 @@ export default function StaffForm({ lang }: { lang: Locale }) {
               required
             />
           </Field>
-          <Field htmlFor="staff-email" label="Adresse email">
+          <Field htmlFor="staff-email" label={t.form.email}>
             <Input
               id="staff-email"
               type="email"
@@ -69,7 +71,7 @@ export default function StaffForm({ lang }: { lang: Locale }) {
               required
             />
           </Field>
-          <Field htmlFor="staff-password" label="Mot de passe">
+          <Field htmlFor="staff-password" label={t.form.password} hint={t.form.passwordHint}>
             <Input
               id="staff-password"
               type="password"
@@ -79,7 +81,7 @@ export default function StaffForm({ lang }: { lang: Locale }) {
               minLength={8}
             />
           </Field>
-          <Field htmlFor="staff-role" label="Rôle">
+          <Field htmlFor="staff-role" label={t.form.role}>
             <Select
               id="staff-role"
               value={form.role}
@@ -87,7 +89,7 @@ export default function StaffForm({ lang }: { lang: Locale }) {
             >
               {ROLES.map((v) => (
                 <option key={v} value={v}>
-                  {tEnum(dict, "role", v)}
+                  {(dict.enums as any)?.role?.[v] || v}
                 </option>
               ))}
             </Select>
@@ -101,16 +103,16 @@ export default function StaffForm({ lang }: { lang: Locale }) {
               className="h-4 w-4 rounded border-[#35404d] bg-[#0d141e] text-[#e5b94f] focus:ring-[#e5b94f]/20"
             />
             <label htmlFor="staff-active" className="text-sm text-[#f4f5f7]">
-              Compte actif
+              {t.form.active}
             </label>
           </div>
           <div className="md:col-span-2 flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => router.back()} disabled={loading}>
-              Annuler
+              {t.form.cancel}
             </Button>
             <Button type="submit" disabled={loading || !form.name || !form.email || !form.password}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Enregistrer
+              {t.form.save}
             </Button>
           </div>
         </CardContent>

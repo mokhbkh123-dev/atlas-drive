@@ -1,16 +1,21 @@
 import Link from "next/link";
-import { Plus, Pencil, Trash2, Car } from "lucide-react";
+import { Plus, Wrench } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
 import { requireModule } from "@/lib/rbac";
-import { resolveLocale } from "@/i18n";
-
-const statusStyles: Record<string, { bg: string; text: string; label: string }> = {
-  SCHEDULED: { bg: "bg-[#f4c34f]/10", text: "text-[#f4c34f]", label: "À venir" },
-  IN_PROGRESS: { bg: "bg-[#a9b2bf]/10", text: "text-[#a9b2bf]", label: "En cours" },
-  COMPLETED: { bg: "bg-[#27d99a]/10", text: "text-[#27d99a]", label: "Terminée" },
-  CANCELLED: { bg: "bg-[#fa655e]/10", text: "text-[#fa655e]", label: "Annulée" },
-};
+import { getDict, resolveLocale, tEnum } from "@/i18n";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import {
+  Badge,
+  buttonClass,
+  EmptyState,
+  PageHeader,
+  Table,
+  TD,
+  TH,
+  TR,
+} from "@/components/admin/ui";
+import { maintenanceStatusTone } from "@/components/admin/fleet/helpers";
 
 export default async function AdminMaintenancePage({
   params,
@@ -20,96 +25,97 @@ export default async function AdminMaintenancePage({
   const lang = await resolveLocale(params);
   await requireModule(lang, "maintenance");
 
-  let maintenances: any[] = [];
-  try {
-    maintenances = await prisma.maintenance.findMany({
-      orderBy: [{ status: "asc" }, { startAt: "asc" }],
-      include: {
-        car: {
-          select: { id: true, name: true, brand: true, model: true, plateNumber: true },
-        },
-      },
-    }) as any[];
-  } catch (error) {
-    console.error("Load maintenances error:", error);
-    maintenances = [];
-  }
+  const dict = getDict(lang);
+  const t = dict.maintenance;
 
-  const formatDate = (d: Date) => d.toLocaleDateString("fr-FR");
+  const maintenances = await prisma.maintenance.findMany({
+    orderBy: [{ status: "asc" }, { startAt: "asc" }],
+    include: {
+      car: { select: { id: true, name: true, brand: true, model: true } },
+    },
+  });
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-[#f4f5f7]">Maintenance</h1>
-        <Link href={`/${lang}/admin/maintenance/new`} className="inline-flex items-center gap-1.5 rounded bg-[#e5b94f] px-3 py-1.5 text-xs font-medium text-[#0a0a0a] hover:bg-[#f6d57a] transition-colors">
-          <Plus className="h-3.5 w-3.5" />
-          Ajouter une maintenance
-        </Link>
-      </div>
+      <PageHeader
+        title={t.title}
+        description={t.subtitle}
+        actions={
+          <Link
+            href={`/${lang}/admin/maintenance/new`}
+            className={buttonClass("primary", "sm")}
+          >
+            <Plus className="h-3.5 w-3.5" aria-hidden />
+            {t.new}
+          </Link>
+        }
+      />
 
-      <div className="flex items-center gap-1 rounded border border-[#202c3a] bg-[#0d141e] p-1 w-fit">
-        <button className="rounded bg-[#e5b94f] px-3 py-1 text-xs font-medium text-[#0a0a0a]">À venir</button>
-        <button className="rounded px-3 py-1 text-xs text-[#b5c0cd] hover:text-[#f4f5f7]">En cours</button>
-        <button className="rounded px-3 py-1 text-xs text-[#b5c0cd] hover:text-[#f4f5f7]">Terminées</button>
-      </div>
-
-      <div className="rounded-lg border border-[#202c3a] bg-[#0d141e] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+      {maintenances.length === 0 ? (
+        <EmptyState
+          icon={Wrench}
+          title={t.empty}
+          action={
+            <Link
+              href={`/${lang}/admin/maintenance/new`}
+              className={buttonClass("secondary", "sm")}
+            >
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+              {t.new}
+            </Link>
+          }
+        />
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-admin-line bg-admin-surface">
+          <Table>
             <thead>
-              <tr className="border-b border-[#202c3a]">
-                <th className="px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-[#8190a1]">Voiture</th>
-                <th className="px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-[#8190a1]">Type</th>
-                <th className="px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-[#8190a1]">Date prévue</th>
-                <th className="px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-[#8190a1]">Statut</th>
-                <th className="px-4 py-2 text-right text-[10px] font-medium uppercase tracking-wider text-[#8190a1]">Actions</th>
+              <tr>
+                <TH>{t.columns.vehicle}</TH>
+                <TH>{t.columns.type}</TH>
+                <TH>{t.columns.period}</TH>
+                <TH>{t.columns.status}</TH>
+                <TH className="text-end">{t.columns.cost}</TH>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#202c3a]/50">
-              {maintenances.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-xs text-[#8190a1]">Aucune maintenance</td>
-                </tr>
-              ) : (
-                maintenances.map((m) => {
-                  const style = statusStyles[m.status] || statusStyles.SCHEDULED;
-                  const carName = m.car ? (m.car.name || `${m.car.brand} ${m.car.model}`) : "-";
-                  const type = m.type === "OIL_CHANGE" ? "Vidange" : m.type === "TIRE_CHANGE" ? "Pneus" : m.type === "INSPECTION" ? "Révision" : m.type === "REPAIR" ? "Réparation" : m.type;
-                  return (
-                    <tr key={m.id} className="hover:bg-white/2">
-                      <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-8 w-12 items-center justify-center rounded bg-[#111b27]">
-                            <Car className="h-4 w-4 text-[#8190a1]" />
-                          </div>
-                          <span className="text-xs text-[#f4f5f7]">{carName}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5 text-xs text-[#b5c0cd]">{type}</td>
-                      <td className="px-4 py-2.5 text-xs text-[#b5c0cd]">{formatDate(m.startAt)}</td>
-                      <td className="px-4 py-2.5">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] ${style.bg} ${style.text}`}>
-                          {style.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button className="rounded p-1 text-[#8190a1] hover:bg-white/5 hover:text-[#e5b94f]">
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                          <button className="rounded p-1 text-[#8190a1] hover:bg-white/5 hover:text-[#fa655e]">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
+            <tbody>
+              {maintenances.map((m) => {
+                const carName = m.car?.name || `${m.car?.brand ?? ""} ${m.car?.model ?? ""}`.trim();
+                return (
+                  <TR key={m.id}>
+                    <TD>
+                      {m.car ? (
+                        <Link
+                          href={`/${lang}/admin/cars/${m.car.id}`}
+                          aria-label={`${t.viewVehicle} — ${carName}`}
+                          className="text-sm font-medium text-admin-ink hover:text-admin-navy"
+                        >
+                          {carName}
+                        </Link>
+                      ) : (
+                        <span className="text-sm text-admin-muted">-</span>
+                      )}
+                    </TD>
+                    <TD className="text-admin-muted">
+                      {tEnum(dict, "maintenanceType", m.type)}
+                    </TD>
+                    <TD className="whitespace-nowrap text-admin-muted">
+                      {formatDate(m.startAt, lang)} — {formatDate(m.endAt, lang)}
+                    </TD>
+                    <TD>
+                      <Badge tone={maintenanceStatusTone(m.status)}>
+                        {tEnum(dict, "maintenanceStatus", m.status)}
+                      </Badge>
+                    </TD>
+                    <TD className="text-end whitespace-nowrap">
+                      {formatCurrency(Number(m.cost), lang)}
+                    </TD>
+                  </TR>
+                );
+              })}
             </tbody>
-          </table>
+          </Table>
         </div>
-      </div>
+      )}
     </div>
   );
 }

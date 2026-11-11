@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 import { getDict, locales, type Locale } from "@/i18n";
 
@@ -16,37 +17,85 @@ function persistLocale(locale: Locale) {
   document.cookie = `NEXT_LOCALE=${locale};path=/;max-age=31536000`;
 }
 
-export default function LanguageSwitcher({ lang }: { lang: Locale }) {
+/** Compact `FR | EN | AR` switch used in the header and the mobile drawer. */
+export default function LanguageSwitcher({
+  lang,
+  tone = "dark",
+}: {
+  lang: Locale;
+  /** `dark` sits on the green header, `light` on a cream surface. */
+  tone?: "dark" | "light";
+}) {
+  // Reading the query string bails out to client rendering up to the nearest
+  // boundary; the fallback is the identical markup minus the query.
+  return (
+    <Suspense fallback={<Switcher lang={lang} tone={tone} query="" />}>
+      <QueryAwareSwitcher lang={lang} tone={tone} />
+    </Suspense>
+  );
+}
+
+function QueryAwareSwitcher({ lang, tone }: { lang: Locale; tone?: "dark" | "light" }) {
+  const searchParams = useSearchParams();
+  const serialized = searchParams?.toString() ?? "";
+  return <Switcher lang={lang} tone={tone} query={serialized ? `?${serialized}` : ""} />;
+}
+
+function Switcher({
+  lang,
+  tone = "dark",
+  query,
+}: {
+  lang: Locale;
+  tone?: "dark" | "light";
+  query: string;
+}) {
   const pathname = usePathname();
   const dict = getDict(lang);
 
   // Current path without the /xx locale prefix.
   const pathWithoutLocale = pathname.replace(/^\/(fr|en|ar)(?=\/|$)/, "") || "/";
+  const base = pathWithoutLocale === "/" ? "" : pathWithoutLocale;
+
+  const onBar = tone === "dark";
 
   return (
     <nav
       aria-label={dict.common.switchLanguage}
-      className="inline-flex items-center rounded-full border border-white/15 bg-white/5 p-0.5"
       role="group"
+      className="flex items-center gap-1"
     >
-      {locales.map((locale) => {
+      {locales.map((locale, index) => {
         const active = locale === lang;
         return (
-          <Link
-            key={locale}
-            href={`/${locale}${pathWithoutLocale === "/" ? "" : pathWithoutLocale}`}
-            hrefLang={locale}
-            lang={locale}
-            aria-current={active ? "true" : undefined}
-            onClick={() => persistLocale(locale)}
-            className={`flex min-h-8 items-center justify-center rounded-full px-2.5 text-[10px] font-bold uppercase tracking-[0.16em] transition-all duration-200 sm:px-3 ${
-              active
-                ? "bg-gold text-black shadow-[0_0_0_1px_rgba(201,169,97,0.4)]"
-                : "text-white/50 hover:text-white"
-            }`}
-          >
-            {languageCodes[locale]}
-          </Link>
+          <span key={locale} className="flex items-center gap-1">
+            {index > 0 && (
+              <span
+                aria-hidden
+                className={`text-xs ${onBar ? "text-white/40" : "text-line-strong"}`}
+              >
+                |
+              </span>
+            )}
+            <Link
+              href={`/${locale}${base}${query}`}
+              hrefLang={locale}
+              lang={locale}
+              aria-current={active ? "true" : undefined}
+              onClick={() => persistLocale(locale)}
+              className={`flex min-h-8 items-center px-1 text-[11px] font-bold uppercase tracking-[0.12em] transition-colors ${
+                active
+                  ? onBar
+                    ? "text-bronze-light"
+                    : "text-bronze-dark"
+                  : onBar
+                    ? "text-white/55 hover:text-white"
+                    : "text-muted hover:text-ink"
+              }`}
+            >
+              {languageCodes[locale]}
+            </Link>
+          </span>
         );
       })}
     </nav>

@@ -5,21 +5,22 @@ export default async function PrivacyPage({ params }: { params: Promise<{ lang: 
   const dict = getDict(lang);
 
   return (
-    <div className="bg-[#050505]">
-      <section className="border-b border-white/5 py-12 sm:py-16">
-        <div className="container-luxe max-w-3xl">
+    <div className="bg-cream">
+      <section className="border-b border-line bg-cream-2 py-12 sm:py-16">
+        <div className="container-site max-w-3xl">
           <p className="eyebrow">{dict.footer.privacy}</p>
-          <h1 className="mt-4 text-balance text-3xl font-bold tracking-tight text-ivory sm:text-4xl">
+          <h1 className="heading-display mt-4 text-balance text-3xl sm:text-4xl">
             {dict.privacy.title}
           </h1>
+          <div className="rule-gold mt-6 max-w-xs" aria-hidden />
         </div>
       </section>
 
       <section className="py-10 sm:py-14">
-        <div className="container-luxe max-w-3xl">
-          <div className="space-y-5">
+        <div className="container-site max-w-3xl">
+          <div className="space-y-6">
             {dict.privacy.paragraphs.map((paragraph, idx) => (
-              <p key={idx} className="text-sm leading-7 text-white/55 sm:text-base">
+              <p key={idx} className="text-[15px] leading-8 text-muted sm:text-base">
                 {paragraph}
               </p>
             ))}

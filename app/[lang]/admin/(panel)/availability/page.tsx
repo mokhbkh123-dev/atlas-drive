@@ -1,9 +1,26 @@
+import Link from "next/link";
+import { Car, CheckCircle2 } from "lucide-react";
+
 import { prisma } from "@/lib/prisma";
 import { requireModule } from "@/lib/rbac";
-import { resolveLocale } from "@/i18n";
+import { getDict, resolveLocale, tEnum } from "@/i18n";
 import { formatDate } from "@/lib/utils";
+import {
+  Badge,
+  EmptyState,
+  PageHeader,
+  Table,
+  TD,
+  TH,
+  TR,
+} from "@/components/admin/ui";
+import { bookingStatusTone } from "@/components/admin/fleet/helpers";
 
 export const dynamic = "force-dynamic";
+
+// A pending request already blocks the vehicle: the owner has to see it before
+// deciding, so it counts as reserved here.
+const RESERVING_STATUSES = ["PENDING", "CONFIRMED", "READY_FOR_PICKUP", "IN_PROGRESS"] as const;
 
 export default async function AdminAvailabilityPage({
   params,
@@ -12,119 +29,115 @@ export default async function AdminAvailabilityPage({
 }) {
   const lang = await resolveLocale(params);
   await requireModule(lang, "availability");
+
+  const dict = getDict(lang);
+  const t = dict.availability;
+
   const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
   const [cars, bookings] = await Promise.all([
     prisma.car.findMany({
       where: { status: "PUBLISHED" },
-      include: { location: true },
       orderBy: [{ brand: "asc" }, { model: "asc" }],
     }),
     prisma.booking.findMany({
       where: {
-        status: { in: ["PENDING", "CONFIRMED", "READY_FOR_PICKUP", "IN_PROGRESS"] },
-        returnAt: { gte: new Date(today.getFullYear(), today.getMonth(), today.getDate()) },
+        status: { in: [...RESERVING_STATUSES] },
+        returnAt: { gte: startOfToday },
       },
-      include: { car: true },
+      select: {
+        id: true,
+        publicRef: true,
+        customerName: true,
+        pickupAt: true,
+        returnAt: true,
+        status: true,
+        carId: true,
+      },
       orderBy: { pickupAt: "asc" },
     }),
   ]);
 
-  // Group bookings by car
   const bookingsByCar = new Map<string, typeof bookings>();
   for (const booking of bookings) {
-    const list = bookingsByCar.get(booking.carId) || [];
-    list.push(booking);
-    bookingsByCar.set(booking.carId, list);
+    const list = bookingsByCar.get(booking.carId);
+    if (list) list.push(booking);
+    else bookingsByCar.set(booking.carId, [booking]);
   }
 
   return (
-    <div>
-      <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h1 className="text-2xl font-semibold text-gray-900">
-            {lang === "ar" ? "التوفر" : lang === "en" ? "Availability" : "Disponibilités"}
-          </h1>
-          <p className="mt-2 text-sm text-gray-700">
-            {lang === "ar"
-              ? "حالة توفر المركبات بناءً على الحجوزات الحالية"
-              : lang === "en"
-              ? "Vehicle availability based on current reservations"
-              : "Disponibilité des véhicules selon les réservations en cours"}
-          </p>
-        </div>
-      </div>
-      <div className="mt-8 grid gap-6">
-        {cars.map((car) => {
-          const carBookings = bookingsByCar.get(car.id) || [];
-          const isAvailable = carBookings.length === 0;
+    <div className="space-y-5">
+      <PageHeader title={t.title} description={t.subtitle} />
 
-          return (
-            <div
-              key={car.id}
-              className="bg-white shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg overflow-hidden"
-            >
-              <div className="px-4 py-5 sm:px-6 flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg leading-6 font-medium text-gray-900">
-                    {car.name || `${car.brand} ${car.model}`}
-                  </h3>
-                  <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                    {car.category} • {car.transmission} • {car.fuelType} • {car.seats}{" "}
-                    {lang === "ar" ? "مقاعد" : lang === "en" ? "seats" : "places"}
-                  </p>
-                </div>
-                <span
-                  className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${
-                    isAvailable
-                      ? "bg-green-100 text-green-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  {isAvailable
-                    ? lang === "ar"
-                      ? "متوفر"
-                      : lang === "en"
-                      ? "Available"
-                      : "Disponible"
-                    : lang === "ar"
-                    ? "محجوز"
-                    : lang === "en"
-                    ? "Booked"
-                    : "Réservé"}
-                </span>
-              </div>
-              {carBookings.length > 0 && (
-                <div className="border-t border-gray-200">
-                  <dl>
-                    {carBookings.map((booking, idx) => (
-                      <div
-                        key={booking.id}
-                        className={`px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 ${
-                          idx % 2 === 0 ? "bg-gray-50" : "bg-white"
-                        }`}
-                      >
-                        <dt className="text-sm font-medium text-gray-500">
-                          {lang === "ar" ? "الحجز" : lang === "en" ? "Booking" : "Réservation"}{" "}
-                          {booking.publicRef}
-                        </dt>
-                        <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                          {booking.customerName} •{" "}
-                          {lang === "ar" ? "الاستلام" : lang === "en" ? "Pickup" : "Prise en charge"}:{" "}
-                          {formatDate(booking.pickupAt, lang)} •{" "}
-                          {lang === "ar" ? "العودة" : lang === "en" ? "Return" : "Retour"}:{" "}
-                          {formatDate(booking.returnAt, lang)} •{" "}
-                          <span className="font-medium">{booking.status}</span>
-                        </dd>
+      {cars.length === 0 ? (
+        <EmptyState icon={Car} title={t.empty} />
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-admin-line bg-admin-surface">
+          <Table>
+            <thead>
+              <tr>
+                <TH>{dict.admin.bookings.table.vehicle}</TH>
+                <TH>{dict.fleet.list.columns.availability}</TH>
+                <TH className="text-end">{dict.admin.bookings.title}</TH>
+              </tr>
+            </thead>
+            <tbody>
+              {cars.map((car) => {
+                const carBookings = bookingsByCar.get(car.id) ?? [];
+                return (
+                  <TR key={car.id}>
+                    <TD>
+                      <div className="font-medium">
+                        {car.name || `${car.brand} ${car.model}`}
                       </div>
-                    ))}
-                  </dl>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                      <div className="text-xs text-admin-muted">
+                        {tEnum(dict, "category", car.category)} •{" "}
+                        {tEnum(dict, "transmission", car.transmission)} •{" "}
+                        {tEnum(dict, "fuel", car.fuelType)} • {car.seats} {t.seats}
+                      </div>
+                    </TD>
+                    <TD>
+                      <Badge tone={carBookings.length === 0 ? "success" : "accent"}>
+                        {carBookings.length === 0 ? t.available : t.booked}
+                      </Badge>
+                    </TD>
+                    <TD className="text-end">
+                      {carBookings.length === 0 ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-admin-muted">
+                          <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+                          {t.noBookings}
+                        </span>
+                      ) : (
+                        <ul className="space-y-1.5">
+                          {carBookings.map((booking) => (
+                            <li key={booking.id} className="text-xs text-admin-muted">
+                              <Link
+                                href={`/${lang}/admin/bookings/${booking.id}`}
+                                className="font-medium text-admin-ink hover:text-admin-gold"
+                              >
+                                {booking.publicRef}
+                              </Link>
+                              {" — "}
+                              {booking.customerName}
+                              {" · "}
+                              {formatDate(booking.pickupAt, lang)} → {formatDate(booking.returnAt, lang)}
+                              {" · "}
+                              <Badge tone={bookingStatusTone(booking.status)}>
+                                {tEnum(dict, "bookingStatus", booking.status)}
+                              </Badge>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </TD>
+                  </TR>
+                );
+              })}
+            </tbody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }
